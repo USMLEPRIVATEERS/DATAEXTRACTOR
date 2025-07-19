@@ -7107,173 +7107,126 @@
         }
 
         const handleDownloadFolder = async () => {
-          if (!selectedPopulationVariable) {
-            alert("Please select a Population Size Variable.");
-            return;
-          }
+  if (!selectedPopulationVariable) {
+    alert("Please select a Population Size Variable.");
+    return;
+  }
 
-          let groupPart;
-          if (groupType === "intervention") {
-            groupPart = groupNames.interventionName;
-          } else if (groupType === "intervention_comparison") {
-            groupPart = `${groupNames.interventionName}_x_${groupNames.comparisonName}`;
+  let groupPart;
+  if (groupType === "intervention") {
+    groupPart = groupNames.interventionName;
+  } else if (groupType === "intervention_comparison") {
+    groupPart = `${groupNames.interventionName}_x_${groupNames.comparisonName}`;
+  } else {
+    groupPart = "Data";
+  }
+
+  const zip = new JSZip();
+  let createdAnyCSV = false;
+
+  // Helper function to process a dataset (baseline or outcomes)
+  const processDataset = (datasetName, variablesToUse) => {
+    let labels = getVariableLabelsFromDataset(variablesToUse);
+
+    const variableCounts = {};
+    labels.forEach(label => {
+      let count = 0;
+      studyIds.forEach(studyId => {
+        if (variablesToUse[studyId]?.some(v => v.label === label)) count++;
+      });
+      variableCounts[label] = count;
+    });
+
+    if (previewOption === "recurrent") {
+      labels = labels.filter(label => variableCounts[label] >= 2);
+    }
+
+    labels.forEach(label => {
+      const count = variableCounts[label];
+      const subfolderName = count < 3 ? "LESS THAN 3 STUDIES" : "3 OR MORE STUDIES";
+
+      const dataRows = [];
+      studyIds.forEach(studyId => {
+        const localVars = variablesToUse[studyId] || [];
+        const targetVar = localVars.find(v => v.label === label);
+        if (!targetVar) return;
+
+        if (onlyCompleteStudies) {
+          if (selectedPopulationVariable === "Total Patients") {
+            if (!hasCompleteDoubleTotals(targetVar)) return;
           } else {
-            groupPart = "Data";
-          }
-
-          // Figure out which variables to include
-          let variablesToInclude = [];
-          if (previewOption === "baseline") {
-            variablesToInclude =
-              getVariableLabelsFromDataset(baselineVariables);
-          } else if (previewOption === "outcomes") {
-            variablesToInclude =
-              getVariableLabelsFromDataset(outcomesVariables);
-          } else if (previewOption === "both") {
-            const baselineLabels =
-              getVariableLabelsFromDataset(baselineVariables);
-            const outcomesLabels =
-              getVariableLabelsFromDataset(outcomesVariables);
-            variablesToInclude = [
-              ...new Set([...baselineLabels, ...outcomesLabels]),
-            ];
-          } else if (previewOption === "recurrent") {
-            const variableCounts = getVariableCountsFromDatasets([
-              baselineVariables,
-              outcomesVariables,
-            ]);
-            variablesToInclude = Object.keys(variableCounts).filter(
-              (label) => variableCounts[label] >= 2
-            );
-          }
-
-          // Remove the selectedPopulationVariable (except if it's "Total Patients"), and remove weightVariable
-          variablesToInclude = variablesToInclude.filter(
-            (label) =>
-              (selectedPopulationVariable === "Total Patients" ||
-                label !== selectedPopulationVariable) &&
-              label !== weightVariable
-          );
-
-          const zip = new JSZip();
-          let createdAnyCSV = false;
-
-          for (const variableLabel of variablesToInclude) {
-            const dataRows = [];
-
-            // gather the relevant variable objects from baseline/outcomes for this study
-            for (const studyId of studyIds) {
-              const localVars = [];
-              if (
-                previewOption === "baseline" ||
-                previewOption === "both" ||
-                previewOption === "recurrent"
-              ) {
-                localVars.push(...(baselineVariables[studyId] || []));
-              }
-              if (
-                previewOption === "outcomes" ||
-                previewOption === "both" ||
-                previewOption === "recurrent"
-              ) {
-                localVars.push(...(outcomesVariables[studyId] || []));
-              }
-
-              const targetVar = localVars.find(
-                (v) => v.label === variableLabel
-              );
-              if (!targetVar) continue;
-
-              // If "onlyCompleteStudies" is true, skip incomplete data
-              if (onlyCompleteStudies) {
-                if (selectedPopulationVariable === "Total Patients") {
-                  // Check if the variable has correct totals
-                  if (!hasCompleteDoubleTotals(targetVar)) {
-                    continue;
-                  }
-                } else {
-                  // use normal logic => populationVar-based completeness
-                  const popVar = localVars.find(
-                    (v) => v.label === selectedPopulationVariable
-                  );
-                  if (!popVar || !hasCompleteData(targetVar, popVar)) {
-                    continue;
-                  }
-                }
-              }
-
-              // Build the row
-              let rowData = null;
-              if (selectedPopulationVariable === "Total Patients") {
-                // ******* use each variable's own total fields *******
-                rowData = buildRowUsingVariableTotals(
-                  studyId,
-                  targetVar,
-                  selectedFormat,
-                  groupNames,
-                  groupType
-                );
-              } else {
-                // Normal approach => find the population variable
-                const popVar = localVars.find(
-                  (v) => v.label === selectedPopulationVariable
-                );
-                if (!popVar) continue; // skip if no population var
-                rowData = buildDataRow(
-                  studyId,
-                  targetVar,
-                  popVar,
-                  selectedFormat,
-                  groupNames,
-                  groupType
-                );
-              }
-
-              if (rowData) dataRows.push(rowData);
+            let popVar = localVars.find(v => v.label === selectedPopulationVariable);
+            if (!popVar) {
+              // Look in the other dataset if not found
+              const otherVariables = (datasetName === "BASELINE DATA" ? outcomesVariables : baselineVariables);
+              popVar = (otherVariables[studyId] || []).find(v => v.label === selectedPopulationVariable);
             }
-
-            // If no data for this variable, skip
-            if (dataRows.length === 0) continue;
-
-            // Build the CSV
-            const csvContent = generateCSVContent(dataRows, selectedFormat);
-            zip.file(`${variableLabel}.csv`, csvContent);
-            createdAnyCSV = true;
+            if (!popVar || !hasCompleteData(targetVar, popVar)) return;
           }
+        }
 
-          // If we didn't produce any CSV
-          if (!createdAnyCSV) {
-            alert("No data available to download.");
-            return;
+        let rowData;
+        if (selectedPopulationVariable === "Total Patients") {
+          rowData = buildRowUsingVariableTotals(studyId, targetVar, selectedFormat, groupNames, groupType);
+        } else {
+          let popVar = localVars.find(v => v.label === selectedPopulationVariable);
+          if (!popVar) {
+            const otherVariables = (datasetName === "BASELINE DATA" ? outcomesVariables : baselineVariables);
+            popVar = (otherVariables[studyId] || []).find(v => v.label === selectedPopulationVariable);
           }
+          if (!popVar) return;
+          rowData = buildDataRow(studyId, targetVar, popVar, selectedFormat, groupNames, groupType);
+        }
 
-          // Generate and download the ZIP
-          zip.generateAsync({ type: "blob" }).then((blob) => {
-            const now = new Date();
-            const fname = `Variables_${groupPart}_${now
-              .toISOString()
-              .slice(0, 19)
-              .replace("T", "_")
-              .replace(/:/g, "-")}.zip`;
+        if (rowData) dataRows.push(rowData);
+      });
 
-            saveAs(blob, fname);
+      if (dataRows.length === 0) return;
 
-            // Open "Variable Files" Google Drive links
-            try {
-              const storedData =
-                JSON.parse(localStorage.getItem("driveLinks")) || {};
-              const variableLinks = storedData["Variable Files"] || [];
-              variableLinks.forEach((link) => {
-                window.open(link, "_blank");
-              });
-            } catch (err) {
-              console.error("Error opening Variable Files links:", err);
-            }
-          });
+      const csvContent = generateCSVContent(dataRows, selectedFormat);
+      const safeLabel = label.replace(/\//g, '_');
+      zip.file(`${datasetName}/${subfolderName}/${safeLabel}.csv`, csvContent);
+      createdAnyCSV = true;
+    });
+  };
 
-          // close the modal
-          closeDownloadFolderModal();
-        };
+  // Process baseline if applicable
+  if (previewOption === "baseline" || previewOption === "both" || previewOption === "recurrent") {
+    processDataset("BASELINE DATA", baselineVariables);
+  }
+
+  // Process outcomes if applicable
+  if (previewOption === "outcomes" || previewOption === "both" || previewOption === "recurrent") {
+    processDataset("OUTCOMES DATA", outcomesVariables);
+  }
+
+  // If we didn't produce any CSV
+  if (!createdAnyCSV) {
+    alert("No data available to download.");
+    return;
+  }
+
+  // Generate and download the ZIP
+  zip.generateAsync({ type: "blob" }).then((blob) => {
+    const now = new Date();
+    const fname = `Variables_${groupPart}_${now.toISOString().slice(0, 19).replace("T", "_").replace(/:/g, "-")}.zip`;
+    saveAs(blob, fname);
+
+    // Open "Variable Files" Google Drive links
+    try {
+      const storedData = JSON.parse(localStorage.getItem("driveLinks")) || {};
+      const variableLinks = storedData["Variable Files"] || [];
+      variableLinks.forEach((link) => {
+        window.open(link, "_blank");
+      });
+    } catch (err) {
+      console.error("Error opening Variable Files links:", err);
+    }
+  });
+
+  // close the modal
+  closeDownloadFolderModal();
+};
 
         function buildDataRowUsingTotalsOnly(
           studyId,
