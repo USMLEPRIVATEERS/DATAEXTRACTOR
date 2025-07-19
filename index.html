@@ -7106,7 +7106,7 @@
           return row;
         }
 
-        const handleDownloadFolder = async () => {
+const handleDownloadFolder = async () => {
   if (!selectedPopulationVariable) {
     alert("Please select a Population Size Variable.");
     return;
@@ -7142,9 +7142,6 @@
     }
 
     labels.forEach(label => {
-      const count = variableCounts[label];
-      const subfolderName = count < 3 ? "LESS THAN 3 STUDIES" : "3 OR MORE STUDIES";
-
       const dataRows = [];
       studyIds.forEach(studyId => {
         const localVars = variablesToUse[studyId] || [];
@@ -7182,6 +7179,9 @@
       });
 
       if (dataRows.length === 0) return;
+
+      const effectiveCount = dataRows.length;
+      const subfolderName = effectiveCount < 3 ? "LESS THAN 3 STUDIES" : "3 OR MORE STUDIES";
 
       const csvContent = generateCSVContent(dataRows, selectedFormat);
       const safeLabel = label.replace(/\//g, '_');
