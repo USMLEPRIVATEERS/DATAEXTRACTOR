@@ -5851,6 +5851,157 @@
           localStorage.setItem("driveLinks", JSON.stringify(updatedLinks));
         };
 
+const handlePicoDownload = () => {
+  // Combine suggested labels, ensuring no duplicates
+  const allBaselineLabels = [...new Set([...suggestedBaselineLabels, ...additionalBaselineSuggestions])];
+
+  // Special labels for outcomes parsing
+  const specialOutcomeLabels = ["All outcomes", "Primary Outcomes", "Secondary Outcomes"];
+
+  // Prepare worksheet data
+  const ws_data = [];
+
+  // Row 1: Study # and numbers 1 to n
+  const row1 = ["Study #"];
+  studyIds.forEach((_, idx) => row1.push(idx + 1));
+  ws_data.push(row1);
+
+  // Row 2: Study ID and the IDs
+  const row2 = ["Study ID", ...studyIds];
+  ws_data.push(row2);
+
+  // Helper to check if a label has data in at least one study
+  const hasDataForLabel = (label) => {
+    return studyIds.some((studyId) => {
+      const studyVars = baselineVariables[studyId] || [];
+      const variable = studyVars.find((v) => v.label === label);
+      if (!variable) return false;
+      const formattedValue = formatVariableValue(variable);
+      return formattedValue && formattedValue !== getMissingValue();
+    });
+  };
+
+  // Filter normal labels (exclude special outcomes for now, and omit if no data)
+  const normalLabels = allBaselineLabels
+    .filter(label => !specialOutcomeLabels.includes(label))
+    .filter(hasDataForLabel);
+
+  // Add rows for normal baseline labels (length 1 + studyIds.length)
+  normalLabels.forEach((label) => {
+    const row = [label];
+    studyIds.forEach((studyId) => {
+      const studyVars = baselineVariables[studyId] || [];
+      const variable = studyVars.find((v) => v.label === label);
+      const formattedValue = variable ? formatVariableValue(variable) : getMissingValue();
+      row.push(formattedValue);
+    });
+    ws_data.push(row);
+  });
+
+  // Now add the special outcome labels at the bottom, only if they have data
+  specialOutcomeLabels.forEach((label, idx) => {
+    // Check if this special label has data in at least one study
+    const hasData = studyIds.some((studyId) => {
+      const textValue = getTextValue(studyId, label, baselineVariables);
+      return textValue && textValue.trim() !== "";
+    });
+
+    if (!hasData) return; // Omit if no data for this label
+
+    // First, add the full text row for the label (length 1 + studyIds.length)
+    const fullRow = [label];
+    studyIds.forEach((studyId) => {
+      const textValue = getTextValue(studyId, label, baselineVariables);
+      fullRow.push(textValue || getMissingValue());
+    });
+    ws_data.push(fullRow);
+
+    // Add the "COUNTING [LABEL] RECURRENCE:" header row in the last column
+    const headerRow = Array(1 + studyIds.length).fill(""); // Empties for col1 and study columns
+    headerRow.push(`COUNTING ${label.toUpperCase()} RECURRENCE:`); // Place in count column
+    ws_data.push(headerRow);
+
+    // Collect unique outcomes across all studies for this label
+    const uniqueOutcomes = new Set();
+    studyIds.forEach((studyId) => {
+      const textValue = getTextValue(studyId, label, baselineVariables);
+      if (textValue) {
+        const outcomes = textValue.split(/,\s*/).map((o) => o.trim()).filter(Boolean);
+        outcomes.forEach((o) => uniqueOutcomes.add(o));
+      }
+    });
+
+    // Sort unique outcomes alphabetically
+    const sortedUnique = Array.from(uniqueOutcomes).sort((a, b) => a.localeCompare(b));
+
+    // For each unique outcome, add a row with TRUE/FALSE and count at end (length 1 + studyIds.length + 1)
+    sortedUnique.forEach((outcome) => {
+      const outcomeRow = [outcome];
+      let trueCount = 0;
+      studyIds.forEach((studyId) => {
+        const textValue = getTextValue(studyId, label, baselineVariables);
+        let hasOutcome = false;
+        if (textValue) {
+          const outcomes = textValue.split(/,\s*/).map((o) => o.trim());
+          hasOutcome = outcomes.includes(outcome);
+        }
+        outcomeRow.push(hasOutcome ? "TRUE" : "FALSE");
+        if (hasOutcome) trueCount++;
+      });
+      outcomeRow.push(trueCount); // Add count at end
+      ws_data.push(outcomeRow);
+    });
+
+    // Add an empty row after this outcomes type block (except after the last one, but since user said after types, add after each)
+    const emptyRow = Array(1 + studyIds.length + 1).fill(""); // Full empty row including count column
+    ws_data.push(emptyRow);
+  });
+
+  // Create workbook and sheet
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(ws_data);
+  XLSX.utils.book_append_sheet(wb, ws, "PICO Table");
+
+  // Generate filename with timestamp
+  const timestamp = new Date().toISOString().slice(0, 19).replace("T", "_").replace(/:/g, "-");
+  const filename = `PICO_Table_${timestamp}.xlsx`;
+
+  // Download
+  XLSX.writeFile(wb, filename);
+};
+
+const formatVariableValue = (variable) => {
+  if (!variable) return getMissingValue();
+
+  if (variable.isSinglePlaceholder || variable.type === "text") {
+    return variable.value || getMissingValue();
+  } else if (variable.type === "dichotomous") {
+    if (groupType === "intervention_comparison" && variable.armType === "double") {
+      return `${variable.value.intervention || getMissingValue()}/${variable.value.interventionTotal || getMissingValue()} / ${variable.value.comparison || getMissingValue()}/${variable.value.comparisonTotal || getMissingValue()}`;
+    } else {
+      return `${variable.value.events || getMissingValue()}/${variable.value.total || getMissingValue()}`;
+    }
+  } else if (variable.type === "continuous") {
+    if (groupType === "intervention_comparison" && variable.armType === "double") {
+      return `${variable.value.intervention.mean || getMissingValue()} ± ${variable.value.intervention.sd || getMissingValue()} / ${variable.value.comparison.mean || getMissingValue()} ± ${variable.value.comparison.sd || getMissingValue()}`;
+    } else {
+      return `${variable.value.mean || getMissingValue()} ± ${variable.value.sd || getMissingValue()}`;
+    }
+  } else if (variable.type === "population_size") {
+    if (groupType === "intervention_comparison" && variable.armType === "double") {
+      return `${variable.value.interventionPop || getMissingValue()} / ${variable.value.comparisonPop || getMissingValue()}`;
+    } else {
+      return variable.value.population || getMissingValue();
+    }
+  }
+  return getMissingValue();
+};
+
+const getTextValue = (studyId, label, variablesToUse) => {
+  const studyVars = variablesToUse[studyId] || [];
+  const variable = studyVars.find((v) => v.label === label);
+  return variable && variable.type === "text" ? variable.value : "";
+};
         // New state variables for the modal and options
         const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
         const [selectedFormat, setSelectedFormat] = useState("RevMan");
@@ -8249,6 +8400,12 @@ const handleDownloadFolder = async () => {
                 >
                   <i className="fas fa-save mr-2"></i> Save Backup
                 </button>
+                <button
+  onClick={handlePicoDownload}
+  className="flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-6 rounded-lg transition duration-300"
+>
+  <i className="fas fa-table mr-2"></i> PICO TABLE
+</button>
                 <button
                   onClick={handleSave}
                   className="flex items-center justify-center bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-6 rounded-lg transition duration-300"
