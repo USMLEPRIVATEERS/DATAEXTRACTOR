@@ -15,10 +15,7 @@
     <!-- Include FileSaver.js library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <!-- Font Awesome for icons -->
-    <script
-      src="https://kit.fontawesome.com/a076d05399.js"
-      crossorigin="anonymous"
-    ></script>
+    <!-- Removed due to CORS issues when opening from file:// -->
     <style>
       .dragging {
         opacity: 0.3;
@@ -383,10 +380,85 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <script type="text/babel">
-      const { useState, useEffect } = React;
+      const { useState, useEffect, useRef } = React;
+
+      // ============================================
+      // PROJECT MANAGEMENT SYSTEM
+      // ============================================
+      const STORAGE_KEY = 'data_extraction_projects';
+
+      /**
+       * Generates a unique project ID
+       * Format: project_[timestamp]_[random9chars]
+       */
+      function generateProjectId() {
+        const timestamp = Date.now();
+        const randomStr = Math.random().toString(36).substring(2, 11);
+        return `project_${timestamp}_${randomStr}`;
+      }
+
+      /**
+       * Saves the projects list to localStorage
+       */
+      function saveProjectsList(projects) {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
+          return true;
+        } catch (error) {
+          console.error('Error saving projects:', error);
+          alert('Error saving: insufficient browser storage!');
+          return false;
+        }
+      }
+
+      /**
+       * Retrieves all projects from localStorage
+       */
+      function getAllProjects() {
+        try {
+          const data = localStorage.getItem(STORAGE_KEY);
+          return data ? JSON.parse(data) : [];
+        } catch (error) {
+          console.error('Error loading projects:', error);
+          return [];
+        }
+      }
+
+      /**
+       * Gets projects sorted by update date (most recent first)
+       */
+      function getProjectsSortedByDate() {
+        const projects = getAllProjects();
+        return projects.sort((a, b) => {
+          return new Date(b.updatedAt) - new Date(a.updatedAt);
+        });
+      }
+
+      /**
+       * Formats ISO date string for display
+       */
+      function formatDate(isoString) {
+        const date = new Date(isoString);
+        return date.toLocaleString('en-US', {
+          month: '2-digit',
+          day: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      }
+
+      /**
+       * Escapes HTML to prevent XSS
+       */
+      function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
 
       function App() {
-        const [currentScreen, setCurrentScreen] = useState("home");
+        const [currentScreen, setCurrentScreen] = useState("welcome");
         const [groupType, setGroupType] = useState("intervention");
         const [studyIds, setStudyIds] = useState([]);
         const [selectedOption, setSelectedOption] = useState("baseline");
@@ -409,6 +481,18 @@
 
         // Load data from uploaded backup
         const [uploadedData, setUploadedData] = useState(null);
+
+        // ============================================
+        // PROJECT MANAGEMENT STATES
+        // ============================================
+        const [currentProject, setCurrentProject] = useState(null);
+        const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
+        const [autoSaveStatus, setAutoSaveStatus] = useState('inactive'); // 'inactive', 'active', 'saving', 'saved', 'error'
+        const [isProjectsModalOpen, setIsProjectsModalOpen] = useState(false);
+        const [tempProjectName, setTempProjectName] = useState('');
+
+        // Use useRef for timer to avoid re-renders
+        const autoSaveTimer = useRef(null);
 
         const handleBackupDownload = () => {
           // 1) Determine naming for the file
@@ -478,25 +562,25 @@
           }
         };
 
-        // Auto-download backup on page unload
-        useEffect(() => {
-          const handleBeforeUnload = (e) => {
-            handleBackupDownload();
-            e.preventDefault();
-            e.returnValue = "";
-          };
-          window.addEventListener("beforeunload", handleBeforeUnload);
-          return () => {
-            window.removeEventListener("beforeunload", handleBeforeUnload);
-          };
-        }, [
-          groupType,
-          studyIds,
-          baselineVariables,
-          outcomesVariables,
-          inputValues,
-          groupNames,
-        ]);
+        // Auto-download backup on page unload - DISABLED (using localStorage project system instead)
+        // useEffect(() => {
+        //   const handleBeforeUnload = (e) => {
+        //     handleBackupDownload();
+        //     e.preventDefault();
+        //     e.returnValue = "";
+        //   };
+        //   window.addEventListener("beforeunload", handleBeforeUnload);
+        //   return () => {
+        //     window.removeEventListener("beforeunload", handleBeforeUnload);
+        //   };
+        // }, [
+        //   groupType,
+        //   studyIds,
+        //   baselineVariables,
+        //   outcomesVariables,
+        //   inputValues,
+        //   groupNames,
+        // ]);
 
         useEffect(() => {
           if (uploadedData) {
@@ -518,16 +602,508 @@
           }
         }, [uploadedData]);
 
+        // ============================================
+        // PROJECT MANAGEMENT FUNCTIONS
+        // ============================================
+
+        /**
+         * Creates a new empty project
+         */
+        const createNewProject = (projectName, initialGroupType = 'intervention') => {
+          if (!projectName || projectName.trim() === '') {
+            alert('Project name cannot be empty!');
+            return null;
+          }
+
+          const projects = getAllProjects();
+          const newProject = {
+            id: generateProjectId(),
+            name: projectName.trim(),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            data: {
+              groupType: initialGroupType,
+              studyIds: [],
+              baselineVariables: {},
+              outcomesVariables: {},
+              inputValues: {
+                studyIdInput: "",
+                variableLabel: "",
+                variableType: "dichotomous",
+                variableValue: {},
+                selectedStudyId: "",
+                variableArmType: "single",
+              },
+              groupNames: {
+                interventionName: "Intervention",
+                comparisonName: "Comparison",
+              },
+              driveLinks: {}
+            }
+          };
+
+          projects.push(newProject);
+
+          if (saveProjectsList(projects)) {
+            console.log(`✅ Project "${projectName}" created successfully with groupType: ${initialGroupType}`);
+            return newProject;
+          }
+
+          return null;
+        };
+
+        /**
+         * Loads a specific project by ID
+         */
+        const loadProject = (projectId) => {
+          const projects = getAllProjects();
+          const project = projects.find(p => p.id === projectId);
+
+          if (!project) {
+            alert('Project not found!');
+            return null;
+          }
+
+          // Set as current project
+          setCurrentProject(project);
+
+          // Load all data into states
+          setGroupType(project.data.groupType || 'intervention');
+          setStudyIds(project.data.studyIds || []);
+          setBaselineVariables(project.data.baselineVariables || {});
+          setOutcomesVariables(project.data.outcomesVariables || {});
+          setInputValues(project.data.inputValues || {
+            studyIdInput: "",
+            variableLabel: "",
+            variableType: "dichotomous",
+            variableValue: {},
+            selectedStudyId: "",
+            variableArmType: "single",
+          });
+          setGroupNames(project.data.groupNames || {
+            interventionName: "Intervention",
+            comparisonName: "Comparison",
+          });
+
+          // Restore driveLinks to localStorage
+          if (project.data.driveLinks) {
+            localStorage.setItem('driveLinks', JSON.stringify(project.data.driveLinks));
+          }
+
+          // Navigate to variableInput screen
+          setCurrentScreen('variableInput');
+          setAutoSaveStatus('active');
+
+          console.log(`✅ Project "${project.name}" loaded!`);
+          return project;
+        };
+
+        /**
+         * Saves the current project to localStorage
+         */
+        const saveCurrentProject = () => {
+          if (!currentProject) {
+            console.warn('No project is currently loaded!');
+            return false;
+          }
+
+          const projects = getAllProjects();
+          const projectIndex = projects.findIndex(p => p.id === currentProject.id);
+
+          if (projectIndex === -1) {
+            console.error('Current project not found in projects list!');
+            return false;
+          }
+
+          // Get current driveLinks from localStorage
+          const driveLinks = JSON.parse(localStorage.getItem('driveLinks')) || {};
+
+          // Update project data
+          projects[projectIndex] = {
+            ...projects[projectIndex],
+            updatedAt: new Date().toISOString(),
+            data: {
+              groupType,
+              studyIds,
+              baselineVariables,
+              outcomesVariables,
+              inputValues,
+              groupNames,
+              driveLinks
+            }
+          };
+
+          if (saveProjectsList(projects)) {
+            setCurrentProject(projects[projectIndex]);
+            console.log('✅ Project updated successfully!');
+            return true;
+          }
+
+          return false;
+        };
+
+        /**
+         * Deletes a project permanently
+         */
+        const deleteProject = (projectId) => {
+          const projects = getAllProjects();
+          const project = projects.find(p => p.id === projectId);
+
+          if (!project) {
+            alert('Project not found!');
+            return false;
+          }
+
+          const confirmDelete = confirm(
+            `WARNING: Are you sure you want to delete the project "${project.name}"?\n\n` +
+            `This action cannot be undone!`
+          );
+
+          if (!confirmDelete) {
+            return false;
+          }
+
+          const filteredProjects = projects.filter(p => p.id !== projectId);
+
+          if (saveProjectsList(filteredProjects)) {
+            console.log(`✅ Project "${project.name}" deleted!`);
+
+            // If deleted project was the current one, clear it
+            if (currentProject && currentProject.id === projectId) {
+              setCurrentProject(null);
+              setAutoSaveStatus('inactive');
+              setCurrentScreen('welcome');
+            }
+
+            return true;
+          }
+
+          return false;
+        };
+
+        /**
+         * Exports a project to JSON file (old backup format for compatibility)
+         */
+        const exportProject = (projectId) => {
+          const projects = getAllProjects();
+          const project = projects.find(p => p.id === projectId);
+
+          if (!project) {
+            alert('Project not found!');
+            return;
+          }
+
+          // Export in OLD backup format for compatibility
+          const exportData = {
+            groupType: project.data.groupType,
+            studyIds: project.data.studyIds,
+            baselineVariables: project.data.baselineVariables,
+            outcomesVariables: project.data.outcomesVariables,
+            inputValues: project.data.inputValues,
+            groupNames: project.data.groupNames,
+            driveLinks: project.data.driveLinks || {}
+          };
+
+          const dataStr = JSON.stringify(exportData);
+          const blob = new Blob([dataStr], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+
+          // Use project name for file
+          let groupPart;
+          if (project.data.groupType === "intervention") {
+            groupPart = project.data.groupNames.interventionName;
+          } else if (project.data.groupType === "intervention_comparison") {
+            groupPart = `${project.data.groupNames.interventionName}_x_${project.data.groupNames.comparisonName}`;
+          } else {
+            groupPart = project.name.replace(/[^a-z0-9]/gi, '_');
+          }
+
+          const timestamp = new Date();
+          const formattedTimestamp = timestamp
+            .toISOString()
+            .slice(0, 19)
+            .replace("T", "_")
+            .replace(/:/g, "-");
+
+          link.download = `dataset_backup_${groupPart}_${formattedTimestamp}.json`;
+          link.click();
+          URL.revokeObjectURL(url);
+
+          console.log(`✅ Project "${project.name}" exported!`);
+        };
+
+        /**
+         * Imports a backup file (detects old format and creates project)
+         */
+        const importBackupAsProject = (backupData) => {
+          // Check if it's old format (no project structure)
+          const isOldFormat = !backupData.id && !backupData.name && backupData.groupType;
+
+          if (isOldFormat) {
+            // Old format - ask for project name
+            let projectName = prompt(
+              'This is an old backup file.\nEnter a name for the new project:',
+              backupData.groupNames?.interventionName || 'Imported Project'
+            );
+
+            if (!projectName) {
+              alert('Import cancelled - no project name provided.');
+              return null;
+            }
+
+            const projects = getAllProjects();
+            const newProject = {
+              id: generateProjectId(),
+              name: projectName.trim(),
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              data: {
+                groupType: backupData.groupType || 'intervention',
+                studyIds: backupData.studyIds || [],
+                baselineVariables: backupData.baselineVariables || {},
+                outcomesVariables: backupData.outcomesVariables || {},
+                inputValues: backupData.inputValues || {},
+                groupNames: backupData.groupNames || {
+                  interventionName: "Intervention",
+                  comparisonName: "Comparison",
+                },
+                driveLinks: backupData.driveLinks || {}
+              }
+            };
+
+            projects.push(newProject);
+
+            if (saveProjectsList(projects)) {
+              alert(`Project "${projectName}" created from backup successfully!`);
+              return newProject;
+            }
+          }
+
+          return null;
+        };
+
+        /**
+         * Auto-save with debounce
+         */
+        const triggerAutoSave = () => {
+          if (!autoSaveEnabled || !currentProject) {
+            return;
+          }
+
+          setAutoSaveStatus('saving');
+
+          // Clear previous timer
+          if (autoSaveTimer.current) {
+            clearTimeout(autoSaveTimer.current);
+          }
+
+          // Set new timer (1 second debounce)
+          autoSaveTimer.current = setTimeout(() => {
+            if (saveCurrentProject()) {
+              setAutoSaveStatus('saved');
+              // After 2 seconds, change back to active
+              setTimeout(() => {
+                setAutoSaveStatus('active');
+              }, 2000);
+            } else {
+              setAutoSaveStatus('error');
+            }
+          }, 1000);
+        };
+
+        /**
+         * Toggle auto-save on/off
+         */
+        const toggleAutoSave = () => {
+          const newState = !autoSaveEnabled;
+          setAutoSaveEnabled(newState);
+          setAutoSaveStatus(newState ? 'active' : 'inactive');
+
+          if (!newState && autoSaveTimer.current) {
+            clearTimeout(autoSaveTimer.current);
+            autoSaveTimer.current = null;
+          }
+        };
+
+        // ============================================
+        // AUTO-ADJUST VARIABLE ARM TYPE BASED ON GROUP TYPE
+        // ============================================
+        useEffect(() => {
+          if (groupType === "intervention_comparison" && inputValues.variableArmType === "single") {
+            setInputValues(prev => ({
+              ...prev,
+              variableArmType: "double"
+            }));
+          } else if (groupType === "intervention" && inputValues.variableArmType === "double") {
+            setInputValues(prev => ({
+              ...prev,
+              variableArmType: "single"
+            }));
+          }
+        }, [groupType]);
+
+        // ============================================
+        // AUTO-SAVE TRIGGER ON DATA CHANGES
+        // ============================================
+        useEffect(() => {
+          if (currentProject) {
+            triggerAutoSave();
+          }
+        }, [
+          groupType,
+          studyIds,
+          baselineVariables,
+          outcomesVariables,
+          inputValues,
+          groupNames
+        ]);
+
+        // ============================================
+        // LOAD LAST PROJECT ON MOUNT
+        // ============================================
+        useEffect(() => {
+          const projects = getProjectsSortedByDate();
+          if (projects.length > 0 && !currentProject) {
+            // Auto-load most recent project
+            // Comment this out if you don't want auto-load
+            // loadProject(projects[0].id);
+          }
+        }, []);
+
+        // ============================================
+        // PROJECTS MANAGEMENT UI (VIA PROMPTS)
+        // ============================================
+        const showProjectsManagementPrompt = () => {
+          const projects = getProjectsSortedByDate();
+
+          if (projects.length === 0) {
+            const createNew = confirm('No projects found.\n\nWould you like to create a new project?');
+            if (createNew) {
+              const projectName = prompt('Enter project name:', 'Data Extraction - ' + new Date().toLocaleDateString());
+              if (projectName) {
+                const newProject = createNewProject(projectName);
+                if (newProject) {
+                  alert('Project created successfully!\n\nClick OK to start working on it.');
+                  loadProject(newProject.id);
+                }
+              }
+            }
+            return;
+          }
+
+          // Build list of projects
+          let message = 'MY PROJECTS:\n\n';
+          projects.forEach((project, index) => {
+            const isActive = currentProject && currentProject.id === project.id;
+            message += `${index + 1}. ${project.name}${isActive ? ' [ACTIVE]' : ''}\n`;
+            message += `   Studies: ${project.data.studyIds?.length || 0}\n`;
+            message += `   Updated: ${formatDate(project.updatedAt)}\n\n`;
+          });
+
+          message += '\nOPTIONS:\n';
+          message += '• Enter number to LOAD a project\n';
+          message += '• Type "new" to CREATE new project\n';
+          message += '• Type "delete" to DELETE a project\n';
+          message += '• Type "export" to EXPORT a project\n';
+          message += '• Click Cancel to close';
+
+          const choice = prompt(message);
+
+          if (!choice) return;
+
+          // Handle choice
+          if (choice.toLowerCase() === 'new') {
+            const projectName = prompt('Enter project name:', 'Data Extraction - ' + new Date().toLocaleDateString());
+            if (projectName) {
+              const newProject = createNewProject(projectName);
+              if (newProject) {
+                const loadNow = confirm('Project created!\n\nLoad it now?');
+                if (loadNow) {
+                  loadProject(newProject.id);
+                } else {
+                  showProjectsManagementPrompt();
+                }
+              }
+            }
+          } else if (choice.toLowerCase() === 'delete') {
+            const deleteChoice = prompt('Enter project number to DELETE:\n\n' +
+              projects.map((p, i) => `${i + 1}. ${p.name}`).join('\n'));
+            const deleteIndex = parseInt(deleteChoice) - 1;
+            if (deleteIndex >= 0 && deleteIndex < projects.length) {
+              deleteProject(projects[deleteIndex].id);
+              showProjectsManagementPrompt();
+            }
+          } else if (choice.toLowerCase() === 'export') {
+            const exportChoice = prompt('Enter project number to EXPORT:\n\n' +
+              projects.map((p, i) => `${i + 1}. ${p.name}`).join('\n'));
+            const exportIndex = parseInt(exportChoice) - 1;
+            if (exportIndex >= 0 && exportIndex < projects.length) {
+              exportProject(projects[exportIndex].id);
+              showProjectsManagementPrompt();
+            }
+          } else {
+            const projectIndex = parseInt(choice) - 1;
+            if (projectIndex >= 0 && projectIndex < projects.length) {
+              loadProject(projects[projectIndex].id);
+            } else {
+              alert('Invalid choice!');
+              showProjectsManagementPrompt();
+            }
+          }
+        };
+
         return (
-          <div className="max-w-7xl mx-auto px-4 md:px-6">
-            {currentScreen === "home" && (
+          <div className="min-h-screen">
+            {/* Fixed Navigation Bar */}
+            {currentScreen !== "welcome" && (
+              <div className="fixed top-0 left-0 right-0 z-50 bg-gray-900 border-b border-gray-700 shadow-lg">
+                <div className="max-w-7xl mx-auto px-4 md:px-6 py-3 flex justify-end gap-3">
+                  <button
+                    onClick={() => setCurrentScreen("projectsManagement")}
+                    className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-2 px-4 rounded transition duration-300"
+                  >
+                    My Projects
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className={`max-w-7xl mx-auto px-4 md:px-6 ${currentScreen !== "welcome" ? "pt-16" : ""}`}>
+            {currentScreen === "welcome" && (
+              <WelcomeScreen
+                onManageProjects={() => setCurrentScreen("projectsManagement")}
+              />
+            )}
+            {currentScreen === "projectsManagement" && (
+              <ProjectsManagementScreen
+                onBack={() => setCurrentScreen("welcome")}
+                onCreateNew={() => setCurrentScreen("projectName")}
+                onUpload={() => setCurrentScreen("uploadDataset")}
+                onLoadProject={loadProject}
+                onDeleteProject={deleteProject}
+                currentProject={currentProject}
+              />
+            )}
+            {currentScreen === "projectName" && (
+              <ProjectNameScreen
+                onSubmit={(name) => {
+                  setTempProjectName(name);
+                  setCurrentScreen("groupSelection");
+                }}
+                onBack={() => setCurrentScreen("projectsManagement")}
+              />
+            )}
+            {currentScreen === "groupSelection" && (
               <GroupSelectionScreen
                 onSelectGroup={(type) => {
                   setGroupType(type);
-                  setCurrentScreen("groupNaming");
-                }}
-                onUpload={() => {
-                  setCurrentScreen("uploadDataset");
+                  const newProject = createNewProject(tempProjectName, type);
+                  if (newProject) {
+                    loadProject(newProject.id);
+                    setCurrentScreen("groupNaming");
+                  }
                 }}
               />
             )}
@@ -538,14 +1114,21 @@
                   setGroupNames(names);
                   setCurrentScreen("studyIdInput");
                 }}
-                onBack={() => setCurrentScreen("home")}
+                onBack={() => setCurrentScreen("projectsManagement")}
               />
             )}
             {currentScreen === "uploadDataset" && (
               <UploadDatasetScreen
-                onBack={() => setCurrentScreen("home")}
+                onBack={() => setCurrentScreen("projectsManagement")}
                 onUpload={(data) => {
-                  setUploadedData(data);
+                  const importedProject = importBackupAsProject(data);
+
+                  if (importedProject) {
+                    loadProject(importedProject.id);
+                    setCurrentScreen("studyIdInput");
+                  } else {
+                    setUploadedData(data);
+                  }
                 }}
               />
             )}
@@ -595,33 +1178,247 @@
                 onBackupDownload={handleBackupDownload}
               />
             )}
+            </div>
           </div>
         );
       }
 
-      // GroupSelectionScreen Component
-      function GroupSelectionScreen({ onSelectGroup, onUpload }) {
-        return (
-          <div>
-            {/* Soft spotlight behind the headline */}
-            <div className="absolute top-1/4 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[50vw] h-[50vh] bg-white/5 blur-3xl rounded-full opacity-10 pointer-events-none"></div>
+      // ============================================
+      // PROJECT UI COMPONENTS - TEMPORARILY DISABLED DUE TO BABEL PARSING ISSUES
+      // Use console and prompts for now
+      // ============================================
 
-            {/* Noise texture overlay */}
-            <div className="pointer-events-none absolute inset-0 bg-noise-pattern opacity-5"></div>
-            <div class="w-full text-center py-10">
-              <h1 className="text-center text-4xl md:text-5xl font-extrabold tracking-tight mb-2 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
-                Let’s Start the Data Extraction!
-              </h1>
+      // WelcomeScreen Component - Initial screen with only My Projects button
+      function WelcomeScreen({ onManageProjects }) {
+        return (
+          <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+            <div className="w-full max-w-3xl mx-auto px-4 relative z-10">
+              {/* Enhanced gradient orbs */}
+              <div className="absolute top-1/4 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[60vw] h-[60vh] bg-gradient-to-br from-blue-500/20 via-purple-500/20 to-cyan-500/20 blur-3xl rounded-full opacity-20 pointer-events-none animate-pulse"></div>
+              <div className="absolute top-1/3 right-1/4 w-[40vw] h-[40vh] bg-gradient-to-tl from-green-500/15 to-blue-500/15 blur-3xl rounded-full opacity-15 pointer-events-none"></div>
+              <div className="pointer-events-none absolute inset-0 bg-noise-pattern opacity-5"></div>
+
+              {/* Main content container */}
+              <div className="text-center py-12">
+                {/* Title */}
+                <h1 className="text-6xl md:text-7xl font-extrabold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-cyan-400 animate-gradient">
+                  Data Extraction Tool
+                </h1>
+
+                {/* Subtitle */}
+                <p className="text-xl md:text-2xl text-gray-300 max-w-2xl mx-auto mb-14 leading-relaxed">
+                  Organize and manage your scientific data extraction projects
+                  <span className="block text-base text-gray-500 mt-2">with precision and efficiency</span>
+                </p>
+              </div>
+
+              {/* CTA Button */}
+              <div className="flex justify-center mb-8">
+                <button
+                  onClick={onManageProjects}
+                  className="group relative inline-flex items-center justify-center font-bold py-6 px-16 rounded-2xl text-white text-2xl transition-all duration-500 transform hover:scale-110 focus:outline-none focus:ring-4 focus:ring-blue-400/50 overflow-hidden shadow-2xl hover:shadow-blue-500/50"
+                  style={{
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+                    backgroundSize: '200% 200%',
+                  }}
+                >
+                  {/* Animated gradient background */}
+                  <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-blue-600 via-purple-600 to-pink-500 opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ backgroundSize: '200% 200%', animation: 'gradientShift 3s ease infinite' }}></span>
+
+                  {/* Glow effect layers */}
+                  <span className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{
+                    boxShadow: '0 0 40px rgba(139, 92, 246, 0.6), 0 0 80px rgba(59, 130, 246, 0.4), inset 0 0 20px rgba(255, 255, 255, 0.1)',
+                  }}></span>
+
+                  {/* Shimmer effect */}
+                  <span className="absolute inset-0 w-full h-full">
+                    <span className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-12 translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000"></span>
+                  </span>
+
+                  {/* Particle effects */}
+                  <span className="absolute inset-0 overflow-hidden rounded-2xl">
+                    <span className="absolute w-2 h-2 bg-white rounded-full top-[20%] left-[10%] opacity-0 group-hover:opacity-100 group-hover:animate-ping"></span>
+                    <span className="absolute w-1 h-1 bg-blue-300 rounded-full top-[60%] left-[30%] opacity-0 group-hover:opacity-100 animate-pulse" style={{ animationDelay: '0.2s' }}></span>
+                    <span className="absolute w-2 h-2 bg-purple-300 rounded-full top-[40%] right-[20%] opacity-0 group-hover:opacity-100 group-hover:animate-ping" style={{ animationDelay: '0.3s' }}></span>
+                    <span className="absolute w-1 h-1 bg-pink-300 rounded-full bottom-[30%] right-[40%] opacity-0 group-hover:opacity-100 animate-pulse" style={{ animationDelay: '0.5s' }}></span>
+                  </span>
+
+                  {/* Beautiful briefcase icon with enhanced design */}
+                  <span className="relative mr-5 transform group-hover:scale-110 group-hover:rotate-6 transition-all duration-500" style={{ filter: 'drop-shadow(0 0 8px rgba(255, 255, 255, 0.5))' }}>
+                    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      {/* Handle */}
+                      <path d="M12 8h4a2 2 0 012 2v2h4v-2a2 2 0 012-2h4" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.9"/>
+
+                      {/* Main body with gradient */}
+                      <rect x="6" y="12" width="28" height="20" rx="3" stroke="white" strokeWidth="2.5" strokeLinejoin="round" fill="url(#briefcaseBodyGradient)" fillOpacity="0.3"/>
+
+                      {/* Top line separator */}
+                      <path d="M6 17h28" stroke="white" strokeWidth="2.5" strokeLinecap="round" opacity="0.8"/>
+
+                      {/* Lock/clasp detail */}
+                      <circle cx="20" cy="23" r="2.5" fill="white" opacity="0.9"/>
+                      <path d="M20 25.5v3" stroke="white" strokeWidth="2" strokeLinecap="round" opacity="0.9"/>
+
+                      {/* Corner details */}
+                      <circle cx="11" cy="27" r="1" fill="white" opacity="0.6"/>
+                      <circle cx="29" cy="27" r="1" fill="white" opacity="0.6"/>
+
+                      <defs>
+                        <linearGradient id="briefcaseBodyGradient" x1="6" y1="12" x2="34" y2="32" gradientUnits="userSpaceOnUse">
+                          <stop stopColor="#ffffff" stopOpacity="0.4"/>
+                          <stop offset="1" stopColor="#a78bfa" stopOpacity="0.2"/>
+                        </linearGradient>
+                      </defs>
+                    </svg>
+                  </span>
+
+                  <span className="relative font-extrabold tracking-wider uppercase" style={{ letterSpacing: '0.1em', textShadow: '0 2px 10px rgba(0, 0, 0, 0.3), 0 0 20px rgba(255, 255, 255, 0.2)' }}>
+                    My Projects
+                  </span>
+
+                  {/* Arrow indicator with bounce */}
+                  <span className="relative ml-5 transform group-hover:translate-x-2 transition-all duration-500 group-hover:animate-bounce">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ filter: 'drop-shadow(0 0 4px rgba(255, 255, 255, 0.5))' }}>
+                      <path d="M9 5l7 7-7 7" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </span>
+                </button>
+              </div>
+
+              {/* Acknowledgements section */}
+              <div className="mt-20 text-center">
+                <div className="inline-block bg-gray-800/40 backdrop-blur-sm px-8 py-4 rounded-xl border border-gray-700/50">
+                  <p className="text-sm text-gray-400 leading-relaxed">
+                    <strong className="text-gray-300">Acknowledgements:</strong> This app was developed by
+                    <span className="text-gray-300"> Marcos Antônio Dias Vilela</span>
+                    <span className="block mt-1">
+                      (ORCID:{" "}
+                      <a href="https://orcid.org/0000-0001-9303-504X" target="_blank" className="text-blue-400 hover:text-blue-300 transition-colors underline decoration-blue-400/30 hover:decoration-blue-300">
+                        0000-0001-9303-504X
+                      </a>
+                      , PubMed: Vilela MAD) at FAMERP
+                    </span>
+                  </p>
+                </div>
+              </div>
             </div>
 
-            <p className="text-center text-gray-400 max-w-md mx-auto">
-              Please select an option to start.
-            </p>
+            <style jsx>{`
+              .bg-noise-pattern {
+                background-image: url('data:image/svg+xml,%3Csvg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"%3E%3Crect width="1" height="1" fill="%23222222"/%3E%3C/svg%3E');
+                background-size: 200px 200px;
+              }
 
-            <div className="mt-10 w-full max-w-2xl mx-auto px-4">
+              @keyframes gradient {
+                0%, 100% {
+                  background-size: 200% 200%;
+                  background-position: 0% 50%;
+                }
+                50% {
+                  background-size: 200% 200%;
+                  background-position: 100% 50%;
+                }
+              }
+
+              .animate-gradient {
+                animation: gradient 8s ease infinite;
+              }
+
+              @keyframes gradientShift {
+                0% {
+                  background-position: 0% 50%;
+                }
+                50% {
+                  background-position: 100% 50%;
+                }
+                100% {
+                  background-position: 0% 50%;
+                }
+              }
+            `}</style>
+          </div>
+        );
+      }
+
+      // ProjectNameScreen Component
+      function ProjectNameScreen({ onSubmit, onBack }) {
+        const [projectName, setProjectName] = useState('Data Extraction - ' + new Date().toLocaleDateString());
+
+        const handleSubmit = (e) => {
+          e.preventDefault();
+          if (projectName.trim()) {
+            onSubmit(projectName.trim());
+          } else {
+            alert('Please enter a project name!');
+          }
+        };
+
+        return (
+          <div className="min-h-screen flex items-center justify-center px-4">
+            <div className="w-full max-w-md bg-gray-800 rounded-lg shadow-xl p-8 border border-gray-700">
+              <h1 className="text-3xl font-bold text-center mb-6 bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">
+                New Project
+              </h1>
+
+              <form onSubmit={handleSubmit}>
+                <div className="mb-6">
+                  <label className="block text-gray-300 text-sm font-semibold mb-2">
+                    Project Name
+                  </label>
+                  <input
+                    type="text"
+                    value={projectName}
+                    onChange={(e) => setProjectName(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    placeholder="Enter project name..."
+                    autoFocus
+                  />
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={onBack}
+                    className="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg transition duration-300"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105"
+                  >
+                    Continue
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        );
+      }
+
+      // GroupSelectionScreen Component - for selecting study type after naming project
+      function GroupSelectionScreen({ onSelectGroup }) {
+        return (
+          <div className="min-h-screen flex items-center justify-center">
+            <div className="w-full max-w-2xl mx-auto px-4">
+              {/* Soft spotlight behind the headline */}
+              <div className="absolute top-1/4 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[50vw] h-[50vh] bg-white/5 blur-3xl rounded-full opacity-10 pointer-events-none"></div>
+
+              {/* Noise texture overlay */}
+              <div className="pointer-events-none absolute inset-0 bg-noise-pattern opacity-5"></div>
+
+              <div className="text-center py-10">
+                <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
+                  Select Study Type
+                </h1>
+                <p className="text-gray-400 max-w-md mx-auto">
+                  Choose the type of study design for your data extraction.
+                </p>
+              </div>
+
               {/* Glassmorphism panel */}
               <div className="bg-white/5 backdrop-blur-md rounded-xl border border-white/10 p-6 shadow-lg">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Intervention (Magnifying Glass) */}
                   <button
                     onClick={() => onSelectGroup("intervention")}
@@ -672,68 +1469,7 @@
                     </span>
                     Intervention & Comparison
                   </button>
-
-                  {/* Upload (Arrow) */}
-                  <button
-                    onClick={onUpload}
-                    className="relative w-full inline-flex items-center justify-center font-medium py-3 px-6 rounded border border-purple-400 text-gray-100 transition-transform transform hover:scale-105 hover:border-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500
-                         hover:before:content-[''] hover:before:absolute hover:before:bottom-0 hover:before:left-0 hover:before:h-[2px] hover:before:w-full hover:before:bg-purple-400 hover:before:animate-underlineGlow"
-                  >
-                    <span className="mr-2 text-purple-300">
-                      {/* Minimal line icon (upload arrow) */}
-                      <svg
-                        width="16"
-                        height="16"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        className="inline-block align-middle"
-                      >
-                        <path
-                          d="M8 2v10M5 5l3-3 3 3M2 14h12"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </span>
-                    Upload a Dataset
-                  </button>
                 </div>
-              </div>
-              <div className="mt-6 flex justify-center">
-                <button
-                  onClick={() => {
-                    if (
-                      window.confirm(
-                        "Are you sure you want to clear all data? This action cannot be undone."
-                      )
-                    ) {
-                      localStorage.clear();
-                      window.location.reload();
-                    }
-                  }}
-                  className="relative inline-flex items-center justify-center font-medium py-3 px-6 rounded border border-red-400 text-gray-100 transition-transform transform hover:scale-105 hover:border-red-300 focus:outline-none focus:ring-2 focus:ring-red-500"
-                >
-                  <i className="fas fa-trash-alt mr-2"></i> Clear All Data
-                </button>
-              </div>
-              <div className="mt-10 w-full max-w-2xl mx-auto px-4">
-                <p>
-                  <strong>Acknowledgements:</strong> This app was developed by
-                  Marcos Antônio Dias Vilela (ORCID:{" "}
-                  <a
-                    href="https://orcid.org/0000-0001-9303-504X"
-                    target="_blank"
-                  >
-                    0000-0001-9303-504X
-                  </a>
-                  , PubMed: Vilela MAD) at FAMERP (Faculdade de Medicina de São
-                  José do Rio Preto). For inquiries, please contact{" "}
-                  <a href="mailto:marcos.vilela@edu.famerp.br">
-                    marcos.vilela@edu.famerp.br
-                  </a>
-                  .
-                </p>
               </div>
             </div>
 
@@ -742,23 +1478,144 @@
                 background-image: url('data:image/svg+xml,%3Csvg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"%3E%3Crect width="1" height="1" fill="%23222222"/%3E%3C/svg%3E');
                 background-size: 200px 200px;
               }
-
-              @keyframes underlineGlow {
-                0% {
-                  transform: scaleX(0);
-                }
-                100% {
-                  transform: scaleX(1);
-                }
-              }
-              .hover\\:before\\:animate-underlineglow:hover:before {
-                transform-origin: left center;
-                animation: underlineGlow 0.3s ease forwards;
-              }
             `}</style>
           </div>
         );
       }
+
+      // ProjectsManagementScreen Component
+      function ProjectsManagementScreen({ onBack, onCreateNew, onUpload, onLoadProject, onDeleteProject, currentProject }) {
+        const [projects, setProjects] = useState([]);
+        const [refreshKey, setRefreshKey] = useState(0);
+
+        useEffect(() => {
+          setProjects(getProjectsSortedByDate());
+        }, [refreshKey]);
+
+        const handleDelete = (projectId, projectName) => {
+          console.log('Attempting to delete project:', projectId, projectName);
+          const result = onDeleteProject(projectId);
+          console.log('Delete result:', result);
+          if (result) {
+            console.log('Refreshing project list...');
+            setRefreshKey(prev => {
+              console.log('RefreshKey updated from', prev, 'to', prev + 1);
+              return prev + 1;
+            });
+          }
+        };
+
+        const handleExport = (projectId) => {
+          exportProject(projectId);
+        };
+
+        const handleLoad = (projectId) => {
+          onLoadProject(projectId);
+        };
+
+        return (
+          <div className="space-y-6">
+            <h1 className="text-3xl font-bold text-center bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+              My Projects
+            </h1>
+
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={onCreateNew}
+                className="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105"
+              >
+                + Create New Project
+              </button>
+              <button
+                onClick={onUpload}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105"
+              >
+                Upload Dataset
+              </button>
+            </div>
+
+            {/* Projects List */}
+            {projects.length === 0 ? (
+              <div className="text-center py-12 bg-gray-800 rounded-lg border border-gray-700">
+                <p className="text-xl text-gray-400 mb-4">No projects found</p>
+                <p className="text-gray-500">Create your first project to get started!</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {projects.map((project) => (
+                  <div
+                    key={project.id}
+                    className={`bg-gray-800 border rounded-lg p-6 transition duration-300 ${
+                      currentProject && currentProject.id === project.id
+                        ? 'border-blue-500 shadow-lg shadow-blue-500/20'
+                        : 'border-gray-700 hover:border-gray-600'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex-1">
+                        <h3 className="text-xl font-semibold text-white mb-2">
+                          {project.name}
+                          {currentProject && currentProject.id === project.id && (
+                            <span className="ml-3 text-xs bg-blue-600 px-3 py-1 rounded-full">
+                              ACTIVE
+                            </span>
+                          )}
+                        </h3>
+                        <div className="text-sm text-gray-400 space-y-1">
+                          <p>
+                            <span className="font-semibold text-gray-300">Studies:</span>{' '}
+                            {project.data.studyIds?.length || 0}
+                          </p>
+                          <p>
+                            <span className="font-semibold text-gray-300">Created:</span>{' '}
+                            {formatDate(project.createdAt)}
+                          </p>
+                          <p>
+                            <span className="font-semibold text-gray-300">Updated:</span>{' '}
+                            {formatDate(project.updatedAt)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3 flex-wrap">
+                      <button
+                        onClick={() => handleLoad(project.id)}
+                        className="flex-1 min-w-[120px] bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded transition duration-300"
+                      >
+                        Open
+                      </button>
+                      <button
+                        onClick={() => handleExport(project.id)}
+                        className="flex-1 min-w-[120px] bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2 px-4 rounded transition duration-300"
+                      >
+                        Export Backup
+                      </button>
+                      <button
+                        onClick={() => handleDelete(project.id, project.name)}
+                        className="flex-1 min-w-[120px] bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded transition duration-300"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Back Button */}
+            <div className="flex justify-center mt-8">
+              <button
+                onClick={onBack}
+                className="bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-6 rounded-lg transition duration-300"
+              >
+                Back to Home
+              </button>
+            </div>
+          </div>
+        );
+      }
+
       // GroupNamingScreen Component
       function GroupNamingScreen({ groupType, onSubmit, onBack }) {
         const [interventionName, setInterventionName] =
