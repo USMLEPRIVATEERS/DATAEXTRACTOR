@@ -6660,6 +6660,11 @@
                         <th className="border-b-2 border-gray-700 px-4 py-2 text-left">
                           Type
                         </th>
+                        {groupType === "network" && (
+                          <th className="border-b-2 border-gray-700 px-4 py-2 text-left">
+                            Intervention
+                          </th>
+                        )}
                         <th className="border-b-2 border-gray-700 px-4 py-2 text-left">
                           Value
                         </th>
@@ -6684,6 +6689,15 @@
                           <td className="px-4 py-2 capitalize">
                             {variable.type || "Text"}
                           </td>
+                          {groupType === "network" && (
+                            <td className="px-4 py-2">
+                              {variable.interventionName || (
+                                <span className="text-gray-500 italic">
+                                  Baseline
+                                </span>
+                              )}
+                            </td>
+                          )}
                           <td className="px-4 py-2 whitespace-pre-wrap break-all max-w-xs">
                             {(() => {
                               // SINGLE placeholder baseline variable
@@ -7412,6 +7426,7 @@ const getTextValue = (studyId, label, variablesToUse) => {
         const [selectedPopulationVariable, setSelectedPopulationVariable] =
           useState("");
         const [onlyCompleteStudies, setOnlyCompleteStudies] = useState(false);
+        const [selectedCovariate, setSelectedCovariate] = useState(""); // For NETWORK mode MetaInsight covariate
 
         function getMissingValue() {
           if (missingDataRepresentation === "custom") {
@@ -8302,12 +8317,19 @@ const getTextValue = (studyId, label, variablesToUse) => {
             // Convert the array-of-arrays (AOA) to a Sheet
             const ws = XLSX.utils.aoa_to_sheet(ws_data);
 
-            // Merge 'Study ID' across the three header rows
-            ws["!merges"] = [
+            // Merge 'Study ID' and 'Intervention' (if network) across the three header rows
+            const combinedMerges = [
               ...header1Merges,
               ...header2Merges,
               { s: { r: 0, c: 0 }, e: { r: 2, c: 0 } },
             ];
+
+            // If network mode, also merge "Intervention" column
+            if (groupType === "network") {
+              combinedMerges.push({ s: { r: 0, c: 1 }, e: { r: 2, c: 1 } });
+            }
+
+            ws["!merges"] = combinedMerges;
 
             // Append to Workbook
             XLSX.utils.book_append_sheet(wb, ws, "Combined_Data");
@@ -8333,9 +8355,9 @@ const getTextValue = (studyId, label, variablesToUse) => {
             const ws_data = [];
 
             // 1) FIRST HEADER ROW
-            const header1 = ["Study ID"];
+            const header1 = groupType === "network" ? ["Study ID", "Intervention"] : ["Study ID"];
             const header1Merges = [];
-            let colIndex = 1;
+            let colIndex = groupType === "network" ? 2 : 1;
 
             // Count total columns
             let totalColumns = 0;
@@ -8365,9 +8387,9 @@ const getTextValue = (studyId, label, variablesToUse) => {
             ws_data.push(header1);
 
             // 2) SECOND HEADER ROW — variable labels
-            const header2 = [""];
+            const header2 = groupType === "network" ? ["", ""] : [""];
             const header2Merges = [];
-            colIndex = 1;
+            colIndex = groupType === "network" ? 2 : 1;
 
             dataset.allVariableLabels.forEach((label) => {
               const subgroups = dataset.variableSubgroups[label];
@@ -8387,7 +8409,7 @@ const getTextValue = (studyId, label, variablesToUse) => {
             ws_data.push(header2);
 
             // 3) THIRD HEADER ROW — subgroups
-            const header3 = [""];
+            const header3 = groupType === "network" ? ["", ""] : [""];
             const variableColumns = [];
 
             dataset.allVariableLabels.forEach((label) => {
@@ -8406,7 +8428,9 @@ const getTextValue = (studyId, label, variablesToUse) => {
 
             // 4) DATA ROWS
             dataset.dataRows.forEach((row) => {
-              const rowValues = [row.studyId];
+              const rowValues = groupType === "network"
+                ? [row.studyId, row.intervention || ""]
+                : [row.studyId];
               variableColumns.forEach((columnName) => {
                 const cellValue =
                   row.variables[columnName] || getMissingValue();
@@ -8429,13 +8453,20 @@ const getTextValue = (studyId, label, variablesToUse) => {
               ws_data.push(avgRow);
             }
 
-            // Convert to a sheet and merge “Study ID”
+            // Convert to a sheet and merge "Study ID" and "Intervention" (if network)
             const ws = XLSX.utils.aoa_to_sheet(ws_data);
-            ws["!merges"] = [
+            const baseMerges = [
               ...header1Merges,
               ...header2Merges,
               { s: { r: 0, c: 0 }, e: { r: 2, c: 0 } },
             ];
+
+            // If network mode, also merge "Intervention" column
+            if (groupType === "network") {
+              baseMerges.push({ s: { r: 0, c: 1 }, e: { r: 2, c: 1 } });
+            }
+
+            ws["!merges"] = baseMerges;
 
             XLSX.utils.book_append_sheet(wb, ws, dataLabel);
 
@@ -8743,6 +8774,172 @@ const getTextValue = (studyId, label, variablesToUse) => {
           return row;
         }
 
+// ============================================
+// HELPER FUNCTIONS FOR NETWORK MODE EXPORT
+// ============================================
+
+/**
+ * Sanitizes Study ID for MetaInsight format
+ * Removes spaces, commas, "et al." → Example: "Smith, 2020" becomes "Smith2020"
+ */
+const sanitizeStudyId = (studyId) => {
+  return studyId
+    .replace(/et al\./gi, '')
+    .replace(/,/g, '')
+    .replace(/\s+/g, '')
+    .trim();
+};
+
+/**
+ * Sanitizes intervention name for MetaInsight format
+ * Replaces spaces with underscores → Example: "Drug A" becomes "Drug_A"
+ */
+const sanitizeInterventionName = (interventionName) => {
+  return interventionName
+    .replace(/\s+/g, '_')
+    .trim();
+};
+
+/**
+ * Formats covariate name for MetaInsight format
+ * Returns "covar.{name_without_spaces}" → Example: "Hospital Stay" becomes "covar.hospitalstay"
+ */
+const getCovariateName = (covarLabel) => {
+  if (!covarLabel) return '';
+  const sanitized = covarLabel
+    .toLowerCase()
+    .replace(/\s+/g, '')
+    .replace(/[^a-z0-9]/gi, '');
+  return `covar.${sanitized}`;
+};
+
+/**
+ * Gets the covariate value for a specific study/intervention
+ * Searches in both baseline and outcomes variables
+ */
+const getCovariateValue = (studyId, interventionName, covarLabel, baselineVars, outcomesVars) => {
+  if (!covarLabel) return '';
+
+  // Search in baseline first
+  const baselineStudyVars = baselineVars[studyId] || [];
+  let covarVar = baselineStudyVars.find(v =>
+    v.label === covarLabel &&
+    (!interventionName || v.interventionName === interventionName || !v.interventionName)
+  );
+
+  // If not found, search in outcomes
+  if (!covarVar) {
+    const outcomesStudyVars = outcomesVars[studyId] || [];
+    covarVar = outcomesStudyVars.find(v =>
+      v.label === covarLabel &&
+      (!interventionName || v.interventionName === interventionName || !v.interventionName)
+    );
+  }
+
+  if (!covarVar) return '';
+
+  // Extract value based on type
+  if (covarVar.type === 'dichotomous') {
+    return covarVar.value.events || '';
+  } else if (covarVar.type === 'continuous') {
+    return covarVar.value.mean || '';
+  } else if (covarVar.type === 'population_size') {
+    return covarVar.value.population || '';
+  } else if (covarVar.type === 'text') {
+    return covarVar.value.text || covarVar.value || '';
+  }
+
+  return '';
+};
+
+/**
+ * Counts the number of interventions per study for a given variable
+ * Returns object: { studyId: interventionCount }
+ */
+const countInterventionsPerStudy = (variablesToUse, studyIds, targetLabel) => {
+  const counts = {};
+
+  studyIds.forEach(studyId => {
+    const studyVars = variablesToUse[studyId] || [];
+    const interventions = new Set();
+
+    studyVars.forEach(variable => {
+      if (variable.label === targetLabel && variable.interventionName) {
+        interventions.add(variable.interventionName);
+      }
+    });
+
+    counts[studyId] = interventions.size;
+  });
+
+  return counts;
+};
+
+/**
+ * Builds a row for MetaInsight format (NETWORK mode only)
+ * Format for continuous: Study | T | Mean | SD | N | covar.{name} (optional)
+ * Format for dichotomous: Study | T | N | R | covar.{name} (optional)
+ */
+const buildMetaInsightRow = (studyId, targetVar, interventionName, selectedCovariate, baselineVars, outcomesVars) => {
+  const row = {};
+
+  // Sanitize Study ID and intervention name
+  row['Study'] = sanitizeStudyId(studyId);
+  row['T'] = sanitizeInterventionName(interventionName);
+
+  // Build row based on variable type
+  if (targetVar.type === 'dichotomous') {
+    // Dichotomous: Study | T | N | R | covar
+    row['N'] = targetVar.value.total || '';
+    row['R'] = targetVar.value.events || '';
+  } else if (targetVar.type === 'continuous') {
+    // Continuous: Study | T | Mean | SD | N | covar
+    row['Mean'] = targetVar.value.mean || '';
+    row['SD'] = targetVar.value.sd || '';
+    row['N'] = targetVar.value.total || '';
+  } else {
+    // Unsupported type for MetaInsight
+    return null;
+  }
+
+  // Add covariate if selected
+  if (selectedCovariate) {
+    const covarName = getCovariateName(selectedCovariate);
+    const covarValue = getCovariateValue(studyId, interventionName, selectedCovariate, baselineVars, outcomesVars);
+    row[covarName] = covarValue;
+  }
+
+  return row;
+};
+
+/**
+ * Builds a row for RStudio format in NETWORK mode (line per intervention)
+ * Format for dichotomous: study | intervention | events | n
+ * Format for continuous: study | intervention | mean | sd | n
+ */
+const buildRStudioNetworkRow = (studyId, targetVar, interventionName) => {
+  const row = {};
+
+  row['study'] = studyId;
+  row['intervention'] = interventionName;
+
+  if (targetVar.type === 'dichotomous') {
+    row['events'] = targetVar.value.events || '';
+    row['n'] = targetVar.value.total || '';
+  } else if (targetVar.type === 'continuous') {
+    row['mean'] = targetVar.value.mean || '';
+    row['sd'] = targetVar.value.sd || '';
+    row['n'] = targetVar.value.total || '';
+  } else if (targetVar.type === 'population_size') {
+    row['n'] = targetVar.value.population || '';
+  } else {
+    // Unsupported type for RStudio network
+    return null;
+  }
+
+  return row;
+};
+
 const handleDownloadFolder = async () => {
   if (!selectedPopulationVariable) {
     alert("Please select a Population Size Variable.");
@@ -8761,80 +8958,202 @@ const handleDownloadFolder = async () => {
   const zip = new JSZip();
   let createdAnyCSV = false;
 
-  // Helper function to process a dataset (baseline or outcomes)
-  const processDataset = (datasetName, variablesToUse) => {
-    let labels = getVariableLabelsFromDataset(variablesToUse);
+  // ============================================
+  // NETWORK MODE - New Logic
+  // ============================================
+  if (groupType === "network") {
+    const processNetworkDataset = (datasetName, variablesToUse) => {
+      let labels = getVariableLabelsFromDataset(variablesToUse);
 
-    const variableCounts = {};
-    labels.forEach(label => {
-      let count = 0;
-      studyIds.forEach(studyId => {
-        if (variablesToUse[studyId]?.some(v => v.label === label)) count++;
+      const variableCounts = {};
+      labels.forEach(label => {
+        let count = 0;
+        studyIds.forEach(studyId => {
+          if (variablesToUse[studyId]?.some(v => v.label === label)) count++;
+        });
+        variableCounts[label] = count;
       });
-      variableCounts[label] = count;
-    });
 
-    if (previewOption === "recurrent") {
-      labels = labels.filter(label => variableCounts[label] >= 2);
+      if (previewOption === "recurrent") {
+        labels = labels.filter(label => variableCounts[label] >= 2);
+      }
+
+      labels.forEach(label => {
+        // Create arrays for different folder structures
+        let allInterventionsRows = [];
+        let twoOrMoreInterventionsRows = [];
+
+        studyIds.forEach(studyId => {
+          const localVars = variablesToUse[studyId] || [];
+          const targetVars = localVars.filter(v => v.label === label && v.interventionName);
+
+          targetVars.forEach(targetVar => {
+            const interventionName = targetVar.interventionName;
+
+            // Build row based on selected format
+            let rowData;
+            if (selectedFormat === "MetaInsight") {
+              rowData = buildMetaInsightRow(studyId, targetVar, interventionName, selectedCovariate, baselineVariables, outcomesVariables);
+            } else if (selectedFormat === "RStudio") {
+              rowData = buildRStudioNetworkRow(studyId, targetVar, interventionName);
+            }
+
+            if (!rowData) return;
+
+            // Check if row has complete data (if checkbox is checked)
+            if (onlyCompleteStudies) {
+              const hasEmptyValues = Object.values(rowData).some(val => val === '' || val === null || val === undefined);
+              if (hasEmptyValues) return; // Skip incomplete rows
+
+              // Check covariate if selected
+              if (selectedCovariate && selectedFormat === "MetaInsight") {
+                const covarName = getCovariateName(selectedCovariate);
+                if (!rowData[covarName] || rowData[covarName] === '') return; // Skip if no covar data
+              }
+            }
+
+            // Add to ALL_INTERVENTIONS
+            allInterventionsRows.push({ ...rowData, studyId, interventionName });
+          });
+        });
+
+        // Now process 2_OR_MORE_INTERVENTIONS
+        // Count interventions per study in allInterventionsRows
+        const studyInterventionCounts = {};
+        allInterventionsRows.forEach(row => {
+          if (!studyInterventionCounts[row.studyId]) {
+            studyInterventionCounts[row.studyId] = new Set();
+          }
+          studyInterventionCounts[row.studyId].add(row.interventionName);
+        });
+
+        // Filter rows where study has >= 2 interventions
+        twoOrMoreInterventionsRows = allInterventionsRows.filter(row => {
+          return studyInterventionCounts[row.studyId].size >= 2;
+        });
+
+        // Remove temporary fields (studyId, interventionName) added for counting
+        allInterventionsRows = allInterventionsRows.map(row => {
+          const { studyId, interventionName, ...cleanRow } = row;
+          return cleanRow;
+        });
+        twoOrMoreInterventionsRows = twoOrMoreInterventionsRows.map(row => {
+          const { studyId, interventionName, ...cleanRow } = row;
+          return cleanRow;
+        });
+
+        // Determine folder structure based on unique study count
+        const uniqueStudiesAll = new Set(allInterventionsRows.map(r => r.Study || r.study)).size;
+        const uniqueStudies2Plus = new Set(twoOrMoreInterventionsRows.map(r => r.Study || r.study)).size;
+
+        const safeLabel = label.replace(/\//g, '_');
+
+        // Create folder structure
+        if (allInterventionsRows.length > 0) {
+          const studyCountFolder = uniqueStudiesAll >= 3 ? "3_OR_MORE_STUDIES" : "LESS_THAN_3_STUDIES";
+          const csvAll = generateCSVContent(allInterventionsRows, selectedFormat);
+          zip.file(`${datasetName}/${studyCountFolder}/ALL_INTERVENTIONS/${safeLabel}.csv`, csvAll);
+          createdAnyCSV = true;
+        }
+
+        if (twoOrMoreInterventionsRows.length > 0) {
+          const studyCountFolder = uniqueStudies2Plus >= 3 ? "3_OR_MORE_STUDIES" : "LESS_THAN_3_STUDIES";
+          const csv2Plus = generateCSVContent(twoOrMoreInterventionsRows, selectedFormat);
+          zip.file(`${datasetName}/${studyCountFolder}/2_OR_MORE_INTERVENTIONS/${safeLabel}.csv`, csv2Plus);
+          createdAnyCSV = true;
+        }
+      });
+    };
+
+    // Process baseline if applicable
+    if (previewOption === "baseline" || previewOption === "both" || previewOption === "recurrent") {
+      processNetworkDataset("BASELINE DATA", baselineVariables);
     }
 
-    labels.forEach(label => {
-      const dataRows = [];
-      studyIds.forEach(studyId => {
-        const localVars = variablesToUse[studyId] || [];
-        const targetVar = localVars.find(v => v.label === label);
-        if (!targetVar) return;
+    // Process outcomes if applicable
+    if (previewOption === "outcomes" || previewOption === "both" || previewOption === "recurrent") {
+      processNetworkDataset("OUTCOMES DATA", outcomesVariables);
+    }
+  }
+  // ============================================
+  // NON-NETWORK MODES - Original Logic
+  // ============================================
+  else {
+    // Helper function to process a dataset (baseline or outcomes)
+    const processDataset = (datasetName, variablesToUse) => {
+      let labels = getVariableLabelsFromDataset(variablesToUse);
 
-        if (onlyCompleteStudies) {
+      const variableCounts = {};
+      labels.forEach(label => {
+        let count = 0;
+        studyIds.forEach(studyId => {
+          if (variablesToUse[studyId]?.some(v => v.label === label)) count++;
+        });
+        variableCounts[label] = count;
+      });
+
+      if (previewOption === "recurrent") {
+        labels = labels.filter(label => variableCounts[label] >= 2);
+      }
+
+      labels.forEach(label => {
+        const dataRows = [];
+        studyIds.forEach(studyId => {
+          const localVars = variablesToUse[studyId] || [];
+          const targetVar = localVars.find(v => v.label === label);
+          if (!targetVar) return;
+
+          if (onlyCompleteStudies) {
+            if (selectedPopulationVariable === "Total Patients") {
+              if (!hasCompleteDoubleTotals(targetVar)) return;
+            } else {
+              let popVar = localVars.find(v => v.label === selectedPopulationVariable);
+              if (!popVar) {
+                // Look in the other dataset if not found
+                const otherVariables = (datasetName === "BASELINE DATA" ? outcomesVariables : baselineVariables);
+                popVar = (otherVariables[studyId] || []).find(v => v.label === selectedPopulationVariable);
+              }
+              if (!popVar || !hasCompleteData(targetVar, popVar)) return;
+            }
+          }
+
+          let rowData;
           if (selectedPopulationVariable === "Total Patients") {
-            if (!hasCompleteDoubleTotals(targetVar)) return;
+            rowData = buildRowUsingVariableTotals(studyId, targetVar, selectedFormat, groupNames, groupType);
           } else {
             let popVar = localVars.find(v => v.label === selectedPopulationVariable);
             if (!popVar) {
-              // Look in the other dataset if not found
               const otherVariables = (datasetName === "BASELINE DATA" ? outcomesVariables : baselineVariables);
               popVar = (otherVariables[studyId] || []).find(v => v.label === selectedPopulationVariable);
             }
-            if (!popVar || !hasCompleteData(targetVar, popVar)) return;
+            if (!popVar) return;
+            rowData = buildDataRow(studyId, targetVar, popVar, selectedFormat, groupNames, groupType);
           }
-        }
 
-        let rowData;
-        if (selectedPopulationVariable === "Total Patients") {
-          rowData = buildRowUsingVariableTotals(studyId, targetVar, selectedFormat, groupNames, groupType);
-        } else {
-          let popVar = localVars.find(v => v.label === selectedPopulationVariable);
-          if (!popVar) {
-            const otherVariables = (datasetName === "BASELINE DATA" ? outcomesVariables : baselineVariables);
-            popVar = (otherVariables[studyId] || []).find(v => v.label === selectedPopulationVariable);
-          }
-          if (!popVar) return;
-          rowData = buildDataRow(studyId, targetVar, popVar, selectedFormat, groupNames, groupType);
-        }
+          if (rowData) dataRows.push(rowData);
+        });
 
-        if (rowData) dataRows.push(rowData);
+        if (dataRows.length === 0) return;
+
+        const effectiveCount = dataRows.length;
+        const subfolderName = effectiveCount < 3 ? "LESS THAN 3 STUDIES" : "3 OR MORE STUDIES";
+
+        const csvContent = generateCSVContent(dataRows, selectedFormat);
+        const safeLabel = label.replace(/\//g, '_');
+        zip.file(`${datasetName}/${subfolderName}/${safeLabel}.csv`, csvContent);
+        createdAnyCSV = true;
       });
+    };
 
-      if (dataRows.length === 0) return;
+    // Process baseline if applicable
+    if (previewOption === "baseline" || previewOption === "both" || previewOption === "recurrent") {
+      processDataset("BASELINE DATA", baselineVariables);
+    }
 
-      const effectiveCount = dataRows.length;
-      const subfolderName = effectiveCount < 3 ? "LESS THAN 3 STUDIES" : "3 OR MORE STUDIES";
-
-      const csvContent = generateCSVContent(dataRows, selectedFormat);
-      const safeLabel = label.replace(/\//g, '_');
-      zip.file(`${datasetName}/${subfolderName}/${safeLabel}.csv`, csvContent);
-      createdAnyCSV = true;
-    });
-  };
-
-  // Process baseline if applicable
-  if (previewOption === "baseline" || previewOption === "both" || previewOption === "recurrent") {
-    processDataset("BASELINE DATA", baselineVariables);
-  }
-
-  // Process outcomes if applicable
-  if (previewOption === "outcomes" || previewOption === "both" || previewOption === "recurrent") {
-    processDataset("OUTCOMES DATA", outcomesVariables);
+    // Process outcomes if applicable
+    if (previewOption === "outcomes" || previewOption === "both" || previewOption === "recurrent") {
+      processDataset("OUTCOMES DATA", outcomesVariables);
+    }
   }
 
   // If we didn't produce any CSV
@@ -9456,6 +9775,8 @@ const handleDownloadFolder = async () => {
         }
 
         function generateCSVContent(dataRows, format) {
+          if (!dataRows || dataRows.length === 0) return "";
+
           let csv = "";
 
           if (format === "RevMan") {
@@ -9473,6 +9794,13 @@ const handleDownloadFolder = async () => {
               csv += values.join(";") + "\n";
             });
           } else if (format === "Stata") {
+            const headers = Object.keys(dataRows[0]);
+            csv += headers.join(";") + "\n";
+            dataRows.forEach((row) => {
+              const values = headers.map((header) => row[header]);
+              csv += values.join(";") + "\n";
+            });
+          } else if (format === "MetaInsight") {
             const headers = Object.keys(dataRows[0]);
             csv += headers.join(";") + "\n";
             dataRows.forEach((row) => {
@@ -9653,6 +9981,14 @@ const handleDownloadFolder = async () => {
                           >
                             Study ID
                           </th>
+                          {groupType === "network" && (
+                            <th
+                              className="border-b-2 border-gray-700 px-4 py-2 text-left"
+                              rowSpan="3"
+                            >
+                              Intervention
+                            </th>
+                          )}
                           {(() => {
                             // For "both" or "recurrent": show BASELINE and OUTCOMES spanned headers
                             if (
@@ -9828,6 +10164,9 @@ const handleDownloadFolder = async () => {
                             }`}
                           >
                             <td className="px-4 py-2">{row.studyId}</td>
+                            {groupType === "network" && (
+                              <td className="px-4 py-2">{row.intervention || "-"}</td>
+                            )}
                             {variableColumns.map((columnName) => {
                               const cellValue =
                                 row.variables[columnName] || getMissingValue();
@@ -9846,6 +10185,9 @@ const handleDownloadFolder = async () => {
                             <td className="px-4 py-2 font-semibold">
                               Weighted Averages
                             </td>
+                            {groupType === "network" && (
+                              <td className="px-4 py-2"></td>
+                            )}
                             {variableColumns.map((columnName) => {
                               const avgValue = weightedAverages[columnName];
                               return (
@@ -9930,10 +10272,18 @@ const handleDownloadFolder = async () => {
                       onChange={(e) => setSelectedFormat(e.target.value)}
                       className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
-                      <option value="RevMan">RevMan</option>
-                      <option value="RStudio">RStudio</option>
-                      <option value="Stata">Stata</option>{" "}
-                      {/* New Format Added */}
+                      {groupType === "network" ? (
+                        <>
+                          <option value="RStudio">RStudio</option>
+                          <option value="MetaInsight">MetaInsight</option>
+                        </>
+                      ) : (
+                        <>
+                          <option value="RevMan">RevMan</option>
+                          <option value="RStudio">RStudio</option>
+                          <option value="Stata">Stata</option>
+                        </>
+                      )}
                     </select>
                   </div>
                   <div className="mt-4">
@@ -9954,6 +10304,25 @@ const handleDownloadFolder = async () => {
                       ))}
                     </select>
                   </div>
+                  {groupType === "network" && (
+                    <div className="mt-4">
+                      <label className="block font-semibold mb-2">
+                        Select Covariate (Optional - for MetaInsight)
+                      </label>
+                      <select
+                        value={selectedCovariate}
+                        onChange={(e) => setSelectedCovariate(e.target.value)}
+                        className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">None</option>
+                        {getPopulationVariableOptions().filter(label => label !== "Total Patients").map((label) => (
+                          <option key={label} value={label}>
+                            {label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                   <div className="mt-4 flex items-center">
                     <input
                       type="checkbox"
