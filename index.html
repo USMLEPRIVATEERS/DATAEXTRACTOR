@@ -471,6 +471,7 @@
           variableValue: {},
           selectedStudyId: "",
           variableArmType: "single",
+          interventionName: "",
         });
 
         // New state for group names
@@ -478,6 +479,9 @@
           interventionName: "Intervention",
           comparisonName: "Comparison",
         });
+
+        // New state for used interventions (for Network mode autocomplete)
+        const [usedInterventions, setUsedInterventions] = useState([]);
 
         // Load data from uploaded backup
         const [uploadedData, setUploadedData] = useState(null);
@@ -513,6 +517,7 @@
             outcomesVariables,
             inputValues,
             groupNames,
+            usedInterventions,
           };
 
           // (Optional) Also include Google Drive links from localStorage if needed
@@ -633,11 +638,13 @@
                 variableValue: {},
                 selectedStudyId: "",
                 variableArmType: "single",
+                interventionName: "",
               },
               groupNames: {
                 interventionName: "Intervention",
                 comparisonName: "Comparison",
               },
+              usedInterventions: [],
               driveLinks: {}
             }
           };
@@ -679,11 +686,13 @@
             variableValue: {},
             selectedStudyId: "",
             variableArmType: "single",
+            interventionName: "",
           });
           setGroupNames(project.data.groupNames || {
             interventionName: "Intervention",
             comparisonName: "Comparison",
           });
+          setUsedInterventions(project.data.usedInterventions || []);
 
           // Restore driveLinks to localStorage
           if (project.data.driveLinks) {
@@ -729,6 +738,7 @@
               outcomesVariables,
               inputValues,
               groupNames,
+              usedInterventions,
               driveLinks
             }
           };
@@ -869,6 +879,7 @@
                   interventionName: "Intervention",
                   comparisonName: "Comparison",
                 },
+                usedInterventions: backupData.usedInterventions || [],
                 driveLinks: backupData.driveLinks || {}
               }
             };
@@ -1102,7 +1113,8 @@
                   const newProject = createNewProject(tempProjectName, type);
                   if (newProject) {
                     loadProject(newProject.id);
-                    setCurrentScreen("groupNaming");
+                    // Network mode skips GroupNaming screen
+                    setCurrentScreen(type === "network" ? "studyIdInput" : "groupNaming");
                   }
                 }}
               />
@@ -1165,6 +1177,8 @@
                 onBack={() => setCurrentScreen("studyIdInput")}
                 inputValues={inputValues}
                 setInputValues={setInputValues}
+                usedInterventions={usedInterventions}
+                setUsedInterventions={setUsedInterventions}
               />
             )}
             {currentScreen === "preview" && (
@@ -1418,7 +1432,7 @@
 
               {/* Glassmorphism panel */}
               <div className="bg-white/5 backdrop-blur-md rounded-xl border border-white/10 p-6 shadow-lg">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {/* Intervention (Magnifying Glass) */}
                   <button
                     onClick={() => onSelectGroup("intervention")}
@@ -1468,6 +1482,20 @@
                       {/* Use the Crossed Swords unicode character */}⚔
                     </span>
                     Intervention & Comparison
+                  </button>
+
+                  {/* Network (Network Icon) */}
+                  <button
+                    onClick={() => onSelectGroup("network")}
+                    className="relative w-full inline-flex items-center justify-center font-medium py-3 px-6 rounded border border-purple-400 text-gray-100 transition-transform transform hover:scale-105 hover:border-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500
+                         hover:before:content-[''] hover:before:absolute hover:before:bottom-0 hover:before:left-0 hover:before:h-[2px] hover:before:w-full hover:before:bg-purple-400 hover:before:animate-underlineGlow"
+                  >
+                    <span
+                      className="mr-2 text-purple-300 text-lg leading-none"
+                    >
+                      {/* Network icon */}🕸️
+                    </span>
+                    Network
                   </button>
                 </div>
               </div>
@@ -3372,6 +3400,8 @@
         onBack,
         inputValues,
         setInputValues,
+        usedInterventions,
+        setUsedInterventions,
       }) {
         const [showAlert, setShowAlert] = useState(false);
         const [editVariableId, setEditVariableId] = useState(null);
@@ -3667,6 +3697,12 @@
             return;
           }
 
+          // Validate intervention name for network mode
+          if (groupType === "network" && !isSinglePlaceholder && !inputValues.interventionName.trim()) {
+            alert("Please enter an intervention name for network mode.");
+            return;
+          }
+
           const selectedStudyId = inputValues.selectedStudyId || studyIds[0];
           const studyVars = variables[selectedStudyId]
             ? [...variables[selectedStudyId]]
@@ -3859,10 +3895,23 @@
               }
             }
           } else {
-            // Single-arm (no comparison group)
+            // Single-arm (no comparison group) - applies to both 'intervention' and 'network' modes
             if (inputValues.variableType === "dichotomous") {
-              const populationVar = findPopulationVar(selectedStudyId);
-              const singlePop = populationVar?.value?.population ?? "";
+              let singlePop = "";
+
+              if (groupType === "network") {
+                // Network mode: get population for specific intervention
+                singlePop = getPopulationForIntervention(
+                  selectedStudyId,
+                  inputValues.interventionName,
+                  baselineVariables,
+                  outcomesVariables
+                );
+              } else {
+                // Regular intervention mode: get any population
+                const populationVar = findPopulationVar(selectedStudyId);
+                singlePop = populationVar?.value?.population ?? "";
+              }
 
               if (!inputValues.variableValue.total?.trim() && singlePop) {
                 inputValues.variableValue.total = singlePop;
@@ -3873,8 +3922,21 @@
                 total: inputValues.variableValue.total || "",
               };
             } else if (inputValues.variableType === "continuous") {
-              const populationVar = findPopulationVar(selectedStudyId);
-              const singlePop = populationVar?.value?.population ?? "";
+              let singlePop = "";
+
+              if (groupType === "network") {
+                // Network mode: get population for specific intervention
+                singlePop = getPopulationForIntervention(
+                  selectedStudyId,
+                  inputValues.interventionName,
+                  baselineVariables,
+                  outcomesVariables
+                );
+              } else {
+                // Regular intervention mode: get any population
+                const populationVar = findPopulationVar(selectedStudyId);
+                singlePop = populationVar?.value?.population ?? "";
+              }
 
               if (!inputValues.variableValue.total?.trim() && singlePop) {
                 inputValues.variableValue.total = singlePop;
@@ -3886,8 +3948,21 @@
                 total: inputValues.variableValue.total || "",
               };
             } else if (inputValues.variableType === "text") {
-              const populationVar = findPopulationVar(selectedStudyId);
-              const singlePop = populationVar?.value?.population ?? "";
+              let singlePop = "";
+
+              if (groupType === "network") {
+                // Network mode: get population for specific intervention
+                singlePop = getPopulationForIntervention(
+                  selectedStudyId,
+                  inputValues.interventionName,
+                  baselineVariables,
+                  outcomesVariables
+                );
+              } else {
+                // Regular intervention mode: get any population
+                const populationVar = findPopulationVar(selectedStudyId);
+                singlePop = populationVar?.value?.population ?? "";
+              }
 
               if (!inputValues.variableValue.total?.trim() && singlePop) {
                 inputValues.variableValue.total = singlePop;
@@ -3902,7 +3977,7 @@
               if (groupType === "intervention_comparison") {
                 value = inputValues.variableValue.population || "";
               } else {
-                // Single-arm intervention only
+                // Single-arm intervention or network
                 value = {
                   population: inputValues.variableValue.population || "",
                 };
@@ -3922,6 +3997,16 @@
             isSinglePlaceholder: isSinglePlaceholder,
             armType: inputValues.variableArmType,
           };
+
+          // Add interventionName for network mode
+          if (groupType === "network" && !isSinglePlaceholder) {
+            newVariable.interventionName = inputValues.interventionName.trim();
+
+            // Update usedInterventions list if this is a new intervention
+            if (!usedInterventions.includes(newVariable.interventionName)) {
+              setUsedInterventions([...usedInterventions, newVariable.interventionName]);
+            }
+          }
 
           // Insert or update
           const index = studyVars.findIndex((v) => v.id === editVariableId);
@@ -3948,6 +4033,7 @@
             variableType: "dichotomous",
             variableArmType:
               groupType === "intervention_comparison" ? "double" : "single",
+            interventionName: "",
           }));
 
           setEditVariableId(null);
@@ -4594,6 +4680,24 @@
           return ""; // no population data found
         }
 
+        // Get population for a specific intervention (Network mode)
+        function getPopulationForIntervention(studyId, interventionName, baselineVars, outcomesVars) {
+          const combined = [
+            ...(baselineVars[studyId] || []),
+            ...(outcomesVars[studyId] || []),
+          ];
+
+          // find population_size variable with the same interventionName
+          for (let variable of combined) {
+            if (variable.type === "population_size" &&
+                variable.interventionName === interventionName) {
+              return variable.value.population || "";
+            }
+          }
+
+          return ""; // no population data found for this intervention
+        }
+
         // New version of swapInterventionComparisonValues
         const swapInterventionComparisonValues = () => {
           // Make a shallow copy to avoid mutating state directly.
@@ -4758,6 +4862,32 @@
               )}
             </div>
 
+            {groupType === "network" && !isSinglePlaceholder && (
+              <div className="mt-4">
+                <label className="block font-semibold mb-2">
+                  Intervention Name
+                </label>
+                <input
+                  type="text"
+                  value={inputValues.interventionName}
+                  onChange={(e) =>
+                    setInputValues({
+                      ...inputValues,
+                      interventionName: e.target.value,
+                    })
+                  }
+                  list="intervention-names"
+                  className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="e.g., Placebo, Drug A, Control"
+                />
+                <datalist id="intervention-names">
+                  {usedInterventions.map((name) => (
+                    <option key={name} value={name} />
+                  ))}
+                </datalist>
+              </div>
+            )}
+
             {groupType === "intervention_comparison" &&
               !isSinglePlaceholder && (
                 <div className="mt-4">
@@ -4806,7 +4936,7 @@
                     placeholder="Enter value"
                   />
                 </div>
-              ) : groupType === "intervention_comparison" ? (
+              ) : (groupType === "intervention_comparison") ? (
                 inputValues.variableArmType === "double" ? (
                   <>
                     {/* ========== DOUBLE-ARM + DICHOTOMOUS ========== */}
@@ -5556,7 +5686,7 @@
                   </>
                 )
               ) : (
-                // --- SINGLE-ARM INTERVENTION ONLY ---
+                // --- SINGLE-ARM INTERVENTION OR NETWORK ---
                 <>
                   {/* ========== SINGLE-ARM + DICHOTOMOUS ========== */}
                   {inputValues.variableType === "dichotomous" && (
@@ -5602,12 +5732,19 @@
                           value={
                             inputValues.variableValue.total?.trim()
                               ? inputValues.variableValue.total
-                              : getPopulationForArm(
-                                  inputValues.selectedStudyId || studyIds[0],
-                                  "single",
-                                  baselineVariables,
-                                  outcomesVariables
-                                ) || ""
+                              : (groupType === "network"
+                                  ? getPopulationForIntervention(
+                                      inputValues.selectedStudyId || studyIds[0],
+                                      inputValues.interventionName,
+                                      baselineVariables,
+                                      outcomesVariables
+                                    )
+                                  : getPopulationForArm(
+                                      inputValues.selectedStudyId || studyIds[0],
+                                      "single",
+                                      baselineVariables,
+                                      outcomesVariables
+                                    )) || ""
                           }
                           onChange={(e) => {
                             const val = e.target.value.replace(/\D/g, "");
@@ -5693,12 +5830,19 @@
                           value={
                             inputValues.variableValue.total?.trim()
                               ? inputValues.variableValue.total
-                              : getPopulationForArm(
-                                  inputValues.selectedStudyId || studyIds[0],
-                                  "single",
-                                  baselineVariables,
-                                  outcomesVariables
-                                ) || ""
+                              : (groupType === "network"
+                                  ? getPopulationForIntervention(
+                                      inputValues.selectedStudyId || studyIds[0],
+                                      inputValues.interventionName,
+                                      baselineVariables,
+                                      outcomesVariables
+                                    )
+                                  : getPopulationForArm(
+                                      inputValues.selectedStudyId || studyIds[0],
+                                      "single",
+                                      baselineVariables,
+                                      outcomesVariables
+                                    )) || ""
                           }
                           onChange={(e) => {
                             const val = e.target.value.replace(/\D/g, "");
@@ -7498,6 +7642,10 @@ const getTextValue = (studyId, label, variablesToUse) => {
                     subgroups.add("Events");
                     subgroups.add("Total");
                   }
+                } else if (groupType === "network") {
+                  // Network mode: events + total (Intervention is a data column, not a subgroup)
+                  subgroups.add("Events");
+                  subgroups.add("Total");
                 } else {
                   // single-arm only (groupType === 'intervention'): events + total
                   subgroups.add("Events");
@@ -7520,6 +7668,11 @@ const getTextValue = (studyId, label, variablesToUse) => {
                     subgroups.add("SD");
                     subgroups.add("Total");
                   }
+                } else if (groupType === "network") {
+                  // Network mode: mean / sd / total (Intervention is a data column, not a subgroup)
+                  subgroups.add("Mean");
+                  subgroups.add("SD");
+                  subgroups.add("Total");
                 } else {
                   // single-arm only => mean / sd / total
                   subgroups.add("Mean");
@@ -7541,6 +7694,9 @@ const getTextValue = (studyId, label, variablesToUse) => {
                       // single-arm text => "Text Value"
                       subgroups.add("Text Value");
                     }
+                  } else if (groupType === "network") {
+                    // Network mode: text value (Intervention is a data column, not a subgroup)
+                    subgroups.add("");
                   } else {
                     // single-arm only => single column => label
                     subgroups.add("");
@@ -7556,6 +7712,9 @@ const getTextValue = (studyId, label, variablesToUse) => {
                   if (armTypes.includes("single")) {
                     subgroups.add("Population");
                   }
+                } else if (groupType === "network") {
+                  // Network mode: population (Intervention is a data column, not a subgroup)
+                  subgroups.add("Population");
                 } else {
                   subgroups.add("Population");
                 }
@@ -7571,24 +7730,95 @@ const getTextValue = (studyId, label, variablesToUse) => {
           // ---------------------------------------------------
           // Build the data rows
           // ---------------------------------------------------
-          const dataRows = studyIds.map((studyId) => {
-            const studyVars = variablesToUse[studyId] || [];
-            const varData = {};
+          let dataRows = [];
 
-            studyVars.forEach((variable) => {
-              const label = variable.label;
-              if (!filteredVariableLabels.includes(label)) return;
+          // NETWORK MODE: Create multiple rows per study (one per intervention)
+          if (groupType === "network") {
+            studyIds.forEach((studyId) => {
+              const studyVars = variablesToUse[studyId] || [];
 
-              const subs = variableSubgroups[label];
+              // Group variables by intervention name
+              const interventionGroups = {};
+              const baselineVars = {}; // Variables without intervention (baseline)
 
-              // Handle single placeholder
-              if (variable.isSinglePlaceholder) {
-                varData[label] = variable.value || getMissingValue();
-                return;
-              }
+              studyVars.forEach((variable) => {
+                const label = variable.label;
+                if (!filteredVariableLabels.includes(label)) return;
 
-              // If we are in an intervention_comparison setup:
-              if (groupType === "intervention_comparison") {
+                // Single placeholder or variables without intervention name
+                if (variable.isSinglePlaceholder || !variable.interventionName) {
+                  baselineVars[label] = variable;
+                } else {
+                  const intName = variable.interventionName;
+                  if (!interventionGroups[intName]) {
+                    interventionGroups[intName] = {};
+                  }
+                  interventionGroups[intName][label] = variable;
+                }
+              });
+
+              // Create one row per intervention
+              Object.keys(interventionGroups).forEach((intName) => {
+                const varData = {};
+
+                // Add baseline variables to this row
+                Object.keys(baselineVars).forEach((label) => {
+                  const variable = baselineVars[label];
+                  if (variable.isSinglePlaceholder) {
+                    varData[label] = variable.value || getMissingValue();
+                  } else if (variable.type === "text") {
+                    varData[label] = variable.value.text || variable.value || getMissingValue();
+                  } else if (variable.type === "population_size") {
+                    varData[`${label}_Population`] = variable.value.population || getMissingValue();
+                  }
+                });
+
+                // Add intervention-specific variables
+                Object.keys(interventionGroups[intName]).forEach((label) => {
+                  const variable = interventionGroups[intName][label];
+
+                  if (variable.type === "dichotomous") {
+                    varData[`${label}_Events`] = variable.value.events || getMissingValue();
+                    varData[`${label}_Total`] = variable.value.total || getMissingValue();
+                  } else if (variable.type === "continuous") {
+                    varData[`${label}_Mean`] = variable.value.mean || getMissingValue();
+                    varData[`${label}_SD`] = variable.value.sd || getMissingValue();
+                    varData[`${label}_Total`] = variable.value.total || getMissingValue();
+                  } else if (variable.type === "text") {
+                    varData[label] = variable.value.text || variable.value || getMissingValue();
+                  } else if (variable.type === "population_size") {
+                    varData[`${label}_Population`] = variable.value.population || getMissingValue();
+                  }
+                });
+
+                dataRows.push({
+                  studyId,
+                  intervention: intName,
+                  variables: varData
+                });
+              });
+            });
+          }
+          // INTERVENTION & INTERVENTION_COMPARISON MODES: Keep original logic (one row per study)
+          else {
+            dataRows = studyIds.map((studyId) => {
+              const studyVars = variablesToUse[studyId] || [];
+              const varData = {};
+
+              studyVars.forEach((variable) => {
+                const label = variable.label;
+                if (!filteredVariableLabels.includes(label)) return;
+
+                const subs = variableSubgroups[label];
+
+                // Handle single placeholder
+                if (variable.isSinglePlaceholder) {
+                  varData[label] = variable.value || getMissingValue();
+                  return;
+                }
+
+                // If we are in an intervention_comparison setup:
+                if (groupType === "intervention_comparison") {
                 if (variable.armType === "double") {
                   // ---------- DOUBLE-ARM ----------
                   if (variable.type === "dichotomous") {
@@ -7653,35 +7883,25 @@ const getTextValue = (studyId, label, variablesToUse) => {
                   }
                 }
               } else {
-                // ---------- SINGLE-ARM, SINGLE GROUP (no comparison) ----------
+                // ---------- SINGLE-ARM INTERVENTION MODE ----------
                 if (variable.type === "dichotomous") {
-                  // variable.value = { events, total }
-                  varData[`${label}_Events`] =
-                    variable.value.events || getMissingValue();
-                  varData[`${label}_Total`] =
-                    variable.value.total || getMissingValue();
+                  varData[`${label}_Events`] = variable.value.events || getMissingValue();
+                  varData[`${label}_Total`] = variable.value.total || getMissingValue();
                 } else if (variable.type === "continuous") {
-                  // variable.value = { mean, sd, total }
-                  varData[`${label}_Mean`] =
-                    variable.value.mean || getMissingValue();
-                  varData[`${label}_SD`] =
-                    variable.value.sd || getMissingValue();
-                  varData[`${label}_Total`] =
-                    variable.value.total || getMissingValue();
+                  varData[`${label}_Mean`] = variable.value.mean || getMissingValue();
+                  varData[`${label}_SD`] = variable.value.sd || getMissingValue();
+                  varData[`${label}_Total`] = variable.value.total || getMissingValue();
                 } else if (variable.type === "text") {
-                  // variable.value = { text } or a string
-                  varData[label] =
-                    variable.value.text || variable.value || getMissingValue();
+                  varData[label] = variable.value.text || variable.value || getMissingValue();
                 } else if (variable.type === "population_size") {
-                  // variable.value = { population }
-                  varData[`${label}_Population`] =
-                    variable.value.population || getMissingValue();
+                  varData[`${label}_Population`] = variable.value.population || getMissingValue();
                 }
               }
-            });
+              });
 
-            return { studyId, variables: varData };
-          });
+              return { studyId, variables: varData };
+            });
+          } // End of else (non-network modes)
 
           // Flatten out all subgroups => create final column names
           const allVariableColumns = [];
@@ -7923,10 +8143,10 @@ const getTextValue = (studyId, label, variablesToUse) => {
             const baselineSubgroups = baselineDataset.variableSubgroups;
             const outcomesSubgroups = outcomesDataset.variableSubgroups;
 
-            // 1) FIRST HEADER ROW — for “Study ID” and then “BASELINE” and “OUTCOMES”
-            const header1 = ["Study ID"];
+            // 1) FIRST HEADER ROW — for "Study ID", "Intervention" (if network), and then "BASELINE" and "OUTCOMES"
+            const header1 = groupType === "network" ? ["Study ID", "Intervention"] : ["Study ID"];
             const header1Merges = [];
-            let colIndex = 1;
+            let colIndex = groupType === "network" ? 2 : 1;
 
             // Count total columns for Baseline
             let totalBaselineColumns = 0;
@@ -7978,9 +8198,9 @@ const getTextValue = (studyId, label, variablesToUse) => {
             ws_data.push(header1);
 
             // 2) SECOND HEADER ROW — variable labels
-            const header2 = [""];
+            const header2 = groupType === "network" ? ["", ""] : [""];
             const header2Merges = [];
-            colIndex = 1;
+            colIndex = groupType === "network" ? 2 : 1;
 
             // Baseline variable labels
             baselineLabels.forEach((label) => {
@@ -8020,7 +8240,7 @@ const getTextValue = (studyId, label, variablesToUse) => {
             ws_data.push(header2);
 
             // 3) THIRD HEADER ROW — subgroups
-            const header3 = [""];
+            const header3 = groupType === "network" ? ["", ""] : [""];
             const variableColumns = [];
 
             // Build subgroups for Baseline
@@ -8054,7 +8274,9 @@ const getTextValue = (studyId, label, variablesToUse) => {
 
             // 4) DATA ROWS
             combinedDataRows.forEach((row) => {
-              const rowValues = [row.studyId];
+              const rowValues = groupType === "network"
+                ? [row.studyId, row.intervention || ""]
+                : [row.studyId];
               variableColumns.forEach((columnName) => {
                 const cellValue =
                   row.variables[columnName] || getMissingValue();
@@ -8065,7 +8287,9 @@ const getTextValue = (studyId, label, variablesToUse) => {
 
             // 5) WEIGHTED AVERAGES ROW
             if (Object.keys(weightedAverages).length > 0) {
-              const avgRow = ["Weighted Averages"];
+              const avgRow = groupType === "network"
+                ? ["Weighted Averages", ""]
+                : ["Weighted Averages"];
               variableColumns.forEach((columnName) => {
                 const avgValue = weightedAverages[columnName];
                 avgRow.push(
@@ -8193,7 +8417,9 @@ const getTextValue = (studyId, label, variablesToUse) => {
 
             // 5) WEIGHTED AVERAGES ROW
             if (Object.keys(weightedAverages).length > 0) {
-              const avgRow = ["Weighted Averages"];
+              const avgRow = groupType === "network"
+                ? ["Weighted Averages", ""]
+                : ["Weighted Averages"];
               variableColumns.forEach((columnName) => {
                 const avgValue = weightedAverages[columnName];
                 avgRow.push(
