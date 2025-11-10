@@ -457,6 +457,299 @@
         return div.innerHTML;
       }
 
+      /**
+       * PICO Table Preview Component
+       * Displays editable table with color highlighting for recognized/unrecognized items
+       */
+      function PicoTablePreview({
+        data,
+        orientation,
+        studyIds,
+        suggestedLabels,
+        variableMappings,
+        studyMappings,
+        onDataChange,
+        onVariableMappingChange,
+        onStudyMappingChange
+      }) {
+        const [editingCell, setEditingCell] = useState(null);
+        const [dropdownOpen, setDropdownOpen] = useState(null);
+
+        // Close dropdown when clicking outside
+        useEffect(() => {
+          const handleClickOutside = (e) => {
+            if (dropdownOpen && !e.target.closest('.pico-dropdown-cell')) {
+              setDropdownOpen(null);
+            }
+          };
+
+          if (dropdownOpen) {
+            document.addEventListener('click', handleClickOutside);
+            return () => document.removeEventListener('click', handleClickOutside);
+          }
+        }, [dropdownOpen]);
+
+        const updateCell = (rowIdx, colIdx, value) => {
+          const newData = data.map((row, rIdx) =>
+            rIdx === rowIdx
+              ? row.map((cell, cIdx) => (cIdx === colIdx ? value : cell))
+              : row
+          );
+          onDataChange(newData);
+        };
+
+        const addRow = () => {
+          const newRow = new Array(data[0].length).fill('');
+          onDataChange([...data, newRow]);
+        };
+
+        const removeRow = (rowIdx) => {
+          if (data.length <= 2) {
+            alert('Cannot remove row - table must have at least header and one data row');
+            return;
+          }
+          onDataChange(data.filter((_, idx) => idx !== rowIdx));
+        };
+
+        const addColumn = () => {
+          onDataChange(data.map(row => [...row, '']));
+        };
+
+        const removeColumn = (colIdx) => {
+          if (data[0].length <= 2) {
+            alert('Cannot remove column - table must have at least 2 columns');
+            return;
+          }
+          onDataChange(data.map(row => row.filter((_, idx) => idx !== colIdx)));
+        };
+
+        const isVariableRecognized = (label) => {
+          return suggestedLabels.includes(label);
+        };
+
+        const isStudyRecognized = (studyId) => {
+          return studyIds.includes(studyId);
+        };
+
+        const getCellHighlight = (rowIdx, colIdx, value) => {
+          if (rowIdx === 0 && colIdx === 0) return 'bg-gray-700'; // Corner cell
+
+          if (orientation === 'rows') {
+            // First row = variable labels (except first cell)
+            // First column = study IDs (except first cell)
+            if (rowIdx === 0 && colIdx > 0) {
+              const mapped = variableMappings[value] || value;
+              return isVariableRecognized(mapped) ? 'bg-green-900/40 border-green-500' : 'bg-red-900/40 border-red-500';
+            }
+            if (colIdx === 0 && rowIdx > 0) {
+              const mapped = studyMappings[value] || value;
+              return isStudyRecognized(mapped) ? 'bg-green-900/40 border-green-500' : 'bg-red-900/40 border-red-500';
+            }
+          } else {
+            // First row = study IDs (except first cell)
+            // First column = variable labels (except first cell)
+            if (rowIdx === 0 && colIdx > 0) {
+              const mapped = studyMappings[value] || value;
+              return isStudyRecognized(mapped) ? 'bg-green-900/40 border-green-500' : 'bg-red-900/40 border-red-500';
+            }
+            if (colIdx === 0 && rowIdx > 0) {
+              const mapped = variableMappings[value] || value;
+              return isVariableRecognized(mapped) ? 'bg-green-900/40 border-green-500' : 'bg-red-900/40 border-red-500';
+            }
+          }
+
+          return 'bg-gray-800/30';
+        };
+
+        const handleCellClick = (rowIdx, colIdx, value) => {
+          // If dropdown is already open for this cell, close it
+          if (dropdownOpen?.rowIdx === rowIdx && dropdownOpen?.colIdx === colIdx) {
+            setDropdownOpen(null);
+            return;
+          }
+
+          const isHeader = (orientation === 'rows' && (rowIdx === 0 || colIdx === 0)) ||
+                          (orientation === 'columns' && (rowIdx === 0 || colIdx === 0));
+
+          if (!isHeader || (rowIdx === 0 && colIdx === 0)) return;
+
+          const isVariable = (orientation === 'rows' && rowIdx === 0) || (orientation === 'columns' && colIdx === 0);
+          const isStudy = (orientation === 'rows' && colIdx === 0) || (orientation === 'columns' && rowIdx === 0);
+
+          if (isVariable) {
+            const mapped = variableMappings[value] || value;
+            if (!isVariableRecognized(mapped)) {
+              setDropdownOpen({ type: 'variable', rowIdx, colIdx, value });
+            }
+          } else if (isStudy) {
+            const mapped = studyMappings[value] || value;
+            if (!isStudyRecognized(mapped)) {
+              setDropdownOpen({ type: 'study', rowIdx, colIdx, value });
+            }
+          }
+        };
+
+        const handleMapping = (mappedValue) => {
+          if (!dropdownOpen) return;
+
+          if (dropdownOpen.type === 'variable') {
+            onVariableMappingChange({ ...variableMappings, [dropdownOpen.value]: mappedValue });
+          } else if (dropdownOpen.type === 'study') {
+            onStudyMappingChange({ ...studyMappings, [dropdownOpen.value]: mappedValue });
+          }
+
+          setDropdownOpen(null);
+        };
+
+        return (
+          <div className="overflow-x-auto">
+            <div className="mb-4 flex gap-2">
+              <button onClick={addRow} className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm">+ Add Row</button>
+              <button onClick={addColumn} className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm">+ Add Column</button>
+            </div>
+
+            <table className="w-full border-collapse text-sm">
+              <tbody>
+                {data.map((row, rowIdx) => (
+                  <tr key={rowIdx}>
+                    {row.map((cell, colIdx) => (
+                      <td
+                        key={`${rowIdx}-${colIdx}`}
+                        className={`border border-gray-600 p-2 relative pico-dropdown-cell ${getCellHighlight(rowIdx, colIdx, cell)}`}
+                      >
+                        {editingCell?.rowIdx === rowIdx && editingCell?.colIdx === colIdx ? (
+                          <input
+                            type="text"
+                            value={cell}
+                            onChange={(e) => updateCell(rowIdx, colIdx, e.target.value)}
+                            onBlur={() => setEditingCell(null)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') setEditingCell(null);
+                            }}
+                            autoFocus
+                            className="w-full bg-gray-700 px-1 py-0.5 outline-none"
+                          />
+                        ) : (
+                          <div
+                            className={`min-h-[1.5rem] ${getCellHighlight(rowIdx, colIdx, cell).includes('red') ? 'cursor-pointer' : ''}`}
+                            onDoubleClick={() => setEditingCell({ rowIdx, colIdx })}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCellClick(rowIdx, colIdx, cell);
+                            }}
+                          >
+                            {variableMappings[cell] || studyMappings[cell] ? (
+                              <span>
+                                <s className="text-gray-500">{cell}</s> → {variableMappings[cell] || studyMappings[cell]}
+                              </span>
+                            ) : (
+                              cell
+                            )}
+                          </div>
+                        )}
+                      </td>
+                    ))}
+                    <td className="p-2">
+                      <button
+                        onClick={() => removeRow(rowIdx)}
+                        className="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-xs"
+                      >
+                        ×
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <div className="mt-2 flex gap-2">
+              {data[0]?.map((_, colIdx) => (
+                <button
+                  key={colIdx}
+                  onClick={() => removeColumn(colIdx)}
+                  className="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-xs"
+                >
+                  × Col {colIdx + 1}
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-4 p-3 bg-gray-700/50 rounded text-sm">
+              <div className="font-semibold mb-2">Legend:</div>
+              <div className="flex flex-wrap gap-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-green-900/40 border border-green-500 rounded"></div>
+                  <span>Recognized</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-red-900/40 border border-red-500 rounded"></div>
+                  <span>Not Recognized (click to map)</span>
+                </div>
+              </div>
+              <div className="mt-2 text-gray-400">
+                Double-click any cell to edit • Click red cells to map to existing values
+              </div>
+            </div>
+
+            {/* Mapping Modal - Appears above everything */}
+            {dropdownOpen && (
+              <div className="fixed inset-0 z-[9999] flex items-start justify-center pointer-events-none pt-20 px-4">
+                {/* Modal content */}
+                <div className="relative z-[10000] bg-gray-800 border-2 border-purple-500 rounded-xl shadow-2xl max-w-sm w-full overflow-hidden flex flex-col pointer-events-auto">
+                  {/* Close button */}
+                  <button
+                    onClick={() => setDropdownOpen(null)}
+                    className="absolute top-3 right-3 text-gray-400 hover:text-white transition-colors z-10"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+
+                  {/* Header - Fixed */}
+                  <div className="p-4 pb-3 flex-shrink-0 border-b border-gray-700">
+                    <h3 className="text-lg font-bold text-purple-400 mb-3 pr-8">
+                      {dropdownOpen.type === 'variable' ? 'Map Variable' : 'Map Study ID'}
+                    </h3>
+
+                    <div className="mb-3 p-2 bg-gray-700 rounded-lg">
+                      <div className="text-xs text-gray-400 mb-1">Current value:</div>
+                      <div className="text-sm font-semibold text-white">{dropdownOpen.value}</div>
+                    </div>
+
+                    <div className="text-xs text-gray-300">
+                      Select a {dropdownOpen.type === 'variable' ? 'variable label' : 'study ID'} to map to:
+                    </div>
+                  </div>
+
+                  {/* Options list - Scrollable with max height */}
+                  <div className="overflow-y-auto p-4 space-y-2" style={{ maxHeight: '200px' }}>
+                    {dropdownOpen.type === 'variable' && suggestedLabels.map((label) => (
+                      <button
+                        key={label}
+                        onClick={() => handleMapping(label)}
+                        className="w-full text-left px-4 py-2 bg-gray-700 hover:bg-purple-600 rounded-lg transition-colors duration-200 text-gray-100"
+                      >
+                        {label}
+                      </button>
+                    ))}
+                    {dropdownOpen.type === 'study' && studyIds.map((id) => (
+                      <button
+                        key={id}
+                        onClick={() => handleMapping(id)}
+                        className="w-full text-left px-4 py-2 bg-gray-700 hover:bg-purple-600 rounded-lg transition-colors duration-200 text-gray-100"
+                      >
+                        {id}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      }
+
       function App() {
         const [currentScreen, setCurrentScreen] = useState("welcome");
         const [groupType, setGroupType] = useState("intervention");
@@ -795,53 +1088,71 @@
          * Exports a project to JSON file (old backup format for compatibility)
          */
         const exportProject = (projectId) => {
-          const projects = getAllProjects();
-          const project = projects.find(p => p.id === projectId);
+          try {
+            console.log('🔍 Exporting project:', projectId);
+            const projects = getAllProjects();
+            console.log('📦 All projects:', projects);
+            const project = projects.find(p => p.id === projectId);
 
-          if (!project) {
-            alert('Project not found!');
-            return;
+            if (!project) {
+              alert('Project not found!');
+              console.error('❌ Project not found:', projectId);
+              return;
+            }
+
+            console.log('✅ Found project:', project);
+
+            // Export in OLD backup format for compatibility (with project name)
+            const exportData = {
+              projectName: project.name,
+              groupType: project.data.groupType,
+              studyIds: project.data.studyIds,
+              baselineVariables: project.data.baselineVariables,
+              outcomesVariables: project.data.outcomesVariables,
+              inputValues: project.data.inputValues,
+              groupNames: project.data.groupNames,
+              driveLinks: project.data.driveLinks || {},
+              usedInterventions: project.data.usedInterventions || []
+            };
+
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+
+            // Use project name for file
+            let groupPart;
+            if (project.data.groupType === "intervention") {
+              groupPart = project.data.groupNames?.interventionName || 'intervention';
+            } else if (project.data.groupType === "intervention_comparison") {
+              groupPart = `${project.data.groupNames?.interventionName || 'intervention'}_x_${project.data.groupNames?.comparisonName || 'comparison'}`;
+            } else {
+              groupPart = project.name.replace(/[^a-z0-9]/gi, '_');
+            }
+
+            const timestamp = new Date();
+            const formattedTimestamp = timestamp
+              .toISOString()
+              .slice(0, 19)
+              .replace("T", "_")
+              .replace(/:/g, "-");
+
+            link.download = `dataset_backup_${groupPart}_${formattedTimestamp}.json`;
+
+            // Append to body, click, then remove
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            URL.revokeObjectURL(url);
+
+            console.log(`✅ Project "${project.name}" exported successfully!`);
+            alert(`Project "${project.name}" exported successfully!`);
+          } catch (error) {
+            console.error('❌ Error exporting project:', error);
+            alert('Error exporting project: ' + error.message);
           }
-
-          // Export in OLD backup format for compatibility
-          const exportData = {
-            groupType: project.data.groupType,
-            studyIds: project.data.studyIds,
-            baselineVariables: project.data.baselineVariables,
-            outcomesVariables: project.data.outcomesVariables,
-            inputValues: project.data.inputValues,
-            groupNames: project.data.groupNames,
-            driveLinks: project.data.driveLinks || {}
-          };
-
-          const dataStr = JSON.stringify(exportData);
-          const blob = new Blob([dataStr], { type: 'application/json' });
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-
-          // Use project name for file
-          let groupPart;
-          if (project.data.groupType === "intervention") {
-            groupPart = project.data.groupNames.interventionName;
-          } else if (project.data.groupType === "intervention_comparison") {
-            groupPart = `${project.data.groupNames.interventionName}_x_${project.data.groupNames.comparisonName}`;
-          } else {
-            groupPart = project.name.replace(/[^a-z0-9]/gi, '_');
-          }
-
-          const timestamp = new Date();
-          const formattedTimestamp = timestamp
-            .toISOString()
-            .slice(0, 19)
-            .replace("T", "_")
-            .replace(/:/g, "-");
-
-          link.download = `dataset_backup_${groupPart}_${formattedTimestamp}.json`;
-          link.click();
-          URL.revokeObjectURL(url);
-
-          console.log(`✅ Project "${project.name}" exported!`);
         };
 
         /**
@@ -852,15 +1163,19 @@
           const isOldFormat = !backupData.id && !backupData.name && backupData.groupType;
 
           if (isOldFormat) {
-            // Old format - ask for project name
-            let projectName = prompt(
-              'This is an old backup file.\nEnter a name for the new project:',
-              backupData.groupNames?.interventionName || 'Imported Project'
-            );
+            // Old format - use projectName from backup or ask for one
+            let projectName = backupData.projectName;
 
             if (!projectName) {
-              alert('Import cancelled - no project name provided.');
-              return null;
+              projectName = prompt(
+                'Enter a name for the imported project:',
+                backupData.groupNames?.interventionName || 'Imported Project'
+              );
+
+              if (!projectName) {
+                alert('Import cancelled - no project name provided.');
+                return null;
+              }
             }
 
             const projects = getAllProjects();
@@ -1094,6 +1409,7 @@
                 onUpload={() => setCurrentScreen("uploadDataset")}
                 onLoadProject={loadProject}
                 onDeleteProject={deleteProject}
+                onExportProject={exportProject}
                 currentProject={currentProject}
               />
             )}
@@ -1512,7 +1828,7 @@
       }
 
       // ProjectsManagementScreen Component
-      function ProjectsManagementScreen({ onBack, onCreateNew, onUpload, onLoadProject, onDeleteProject, currentProject }) {
+      function ProjectsManagementScreen({ onBack, onCreateNew, onUpload, onLoadProject, onDeleteProject, onExportProject, currentProject }) {
         const [projects, setProjects] = useState([]);
         const [refreshKey, setRefreshKey] = useState(0);
 
@@ -1534,7 +1850,12 @@
         };
 
         const handleExport = (projectId) => {
-          exportProject(projectId);
+          if (onExportProject) {
+            onExportProject(projectId);
+          } else {
+            console.error('onExportProject prop is not defined');
+            alert('Export function is not available');
+          }
         };
 
         const handleLoad = (projectId) => {
@@ -3421,6 +3742,14 @@
         const [focusedCell, setFocusedCell] = useState(null);
         const [hoveredRowIndex, setHoveredRowIndex] = useState(null);
         const [hoveredColIndex, setHoveredColIndex] = useState(null);
+        // New state variables for PICO mode
+        const [isPicoMode, setIsPicoMode] = useState(false);
+        const [picoRawText, setPicoRawText] = useState("");
+        const [picoOrientation, setPicoOrientation] = useState("rows"); // "rows" or "columns"
+        const [picoTableData, setPicoTableData] = useState([]);
+        const [picoShowPreview, setPicoShowPreview] = useState(false);
+        const [picoVariableMappings, setPicoVariableMappings] = useState({});
+        const [picoStudyMappings, setPicoStudyMappings] = useState({});
 
         const variables =
           selectedOption === "baseline" ? baselineVariables : outcomesVariables;
@@ -4490,6 +4819,185 @@
           setImportArmType(e.target.value);
         };
 
+        // PICO Table Processing Functions
+        const handlePicoProcess = () => {
+          try {
+            // Extract markdown table from raw text
+            const lines = picoRawText.split('\n');
+            const tableLines = [];
+            let inTable = false;
+
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (trimmed.startsWith('|')) {
+                inTable = true;
+                tableLines.push(trimmed);
+              } else if (inTable && !trimmed.startsWith('|')) {
+                break;
+              }
+            }
+
+            if (tableLines.length === 0) {
+              alert('No markdown table found in the pasted text. Please ensure the table uses pipe (|) delimiters.');
+              return;
+            }
+
+            // Helper function to remove markdown formatting
+            const cleanMarkdown = (text) => {
+              return text
+                .replace(/\*\*(.+?)\*\*/g, '$1')  // Remove bold **text**
+                .replace(/\*(.+?)\*/g, '$1')      // Remove italic *text*
+                .replace(/_(.+?)_/g, '$1')        // Remove italic _text_
+                .replace(/~~(.+?)~~/g, '$1')      // Remove strikethrough ~~text~~
+                .replace(/`(.+?)`/g, '$1')        // Remove code `text`
+                .trim();
+            };
+
+            // Parse table rows
+            const parsedRows = tableLines
+              .filter(line => !line.match(/^\|[\s:-]+\|/)) // Remove separator lines
+              .map(line => {
+                return line
+                  .split('|')
+                  .slice(1, -1) // Remove first and last empty elements
+                  .map(cell => cleanMarkdown(cell));
+              });
+
+            if (parsedRows.length < 2) {
+              alert('Table must have at least a header row and one data row.');
+              return;
+            }
+
+            setPicoTableData(parsedRows);
+            setPicoShowPreview(true);
+          } catch (error) {
+            alert('Error processing PICO table: ' + error.message);
+            console.error(error);
+          }
+        };
+
+        const handlePicoConfirm = () => {
+          // Validate that all study IDs are mapped
+          const unmappedStudies = [];
+          const studyHeaders = picoOrientation === 'rows'
+            ? picoTableData.slice(1).map((row, idx) => ({ value: row[0], index: idx + 1 }))
+            : picoTableData[0].slice(1).map((col, idx) => ({ value: col, index: idx + 1 }));
+
+          for (const study of studyHeaders) {
+            const mappedValue = picoStudyMappings[study.value] || study.value;
+            if (!studyIds.includes(mappedValue)) {
+              unmappedStudies.push(study.value);
+            }
+          }
+
+          if (unmappedStudies.length > 0) {
+            alert(`The following Study IDs are not recognized and must be mapped:\n${unmappedStudies.join(', ')}\n\nPlease click on the red Study IDs to map them to existing studies.`);
+            return;
+          }
+
+          // Process and create variables
+          try {
+            const newVars = {};
+
+            if (picoOrientation === 'rows') {
+              // Studies as rows: first column is study IDs, first row is variable labels
+              const variableLabels = picoTableData[0].slice(1); // Skip first cell
+
+              picoTableData.slice(1).forEach(row => {
+                const studyId = picoStudyMappings[row[0]] || row[0];
+                const values = row.slice(1);
+
+                if (!newVars[studyId]) {
+                  newVars[studyId] = [];
+                }
+
+                variableLabels.forEach((label, idx) => {
+                  const mappedLabel = picoVariableMappings[label] || label;
+                  const cellValue = values[idx] || '';
+
+                  if (cellValue.trim()) {
+                    newVars[studyId].push({
+                      id: Date.now() + Math.random(),
+                      label: mappedLabel,
+                      type: 'text',
+                      value: cellValue,
+                      isSinglePlaceholder: true,
+                      armType: 'single'
+                    });
+                  }
+                });
+              });
+            } else {
+              // Studies as columns: first row is study IDs, first column is variable labels
+              const studyIdHeaders = picoTableData[0].slice(1);
+
+              picoTableData.slice(1).forEach(row => {
+                const variableLabel = picoVariableMappings[row[0]] || row[0];
+                const values = row.slice(1);
+
+                values.forEach((cellValue, idx) => {
+                  const studyId = picoStudyMappings[studyIdHeaders[idx]] || studyIdHeaders[idx];
+
+                  if (!newVars[studyId]) {
+                    newVars[studyId] = [];
+                  }
+
+                  if (cellValue.trim()) {
+                    newVars[studyId].push({
+                      id: Date.now() + Math.random(),
+                      label: variableLabel,
+                      type: 'text',
+                      value: cellValue,
+                      isSinglePlaceholder: true,
+                      armType: 'single'
+                    });
+                  }
+                });
+              });
+            }
+
+            // Merge with existing baseline variables
+            const updated = { ...baselineVariables };
+            Object.keys(newVars).forEach(studyId => {
+              if (!updated[studyId]) {
+                updated[studyId] = [];
+              }
+              // Remove duplicates by label and add new ones
+              const existingLabels = updated[studyId].map(v => v.label);
+              newVars[studyId].forEach(newVar => {
+                const existingIdx = updated[studyId].findIndex(v => v.label === newVar.label);
+                if (existingIdx >= 0) {
+                  updated[studyId][existingIdx] = newVar;
+                } else {
+                  updated[studyId].push(newVar);
+                }
+              });
+            });
+
+            setBaselineVariables(updated);
+
+            // Add variable labels to suggestions
+            const allLabels = new Set(allVariableSuggestions);
+            Object.values(newVars).forEach(vars => {
+              vars.forEach(v => allLabels.add(v.label));
+            });
+            setAllVariableSuggestions(Array.from(allLabels));
+
+            // Reset PICO state
+            setIsPicoMode(false);
+            setPicoShowPreview(false);
+            setPicoRawText('');
+            setPicoTableData([]);
+            setPicoVariableMappings({});
+            setPicoStudyMappings({});
+
+            alert('PICO variables added successfully!');
+          } catch (error) {
+            alert('Error creating variables: ' + error.message);
+            console.error(error);
+          }
+        };
+
         const handleAddDataset = () => {
           let dataLines = [];
 
@@ -4774,21 +5282,6 @@
                   }`}
                 >
                   Outcomes
-                </button>
-                {/* NEW BUTTON: "Add Multiple Variables" */}
-                <button
-                  onClick={openMultiVarModal}
-                  className="bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4
-               rounded-lg transition duration-300 flex items-center ml-4"
-                >
-                  {/* Example plus sign icon (Font Awesome or inline SVG) */}
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 448 512"
-                    className="w-4 h-4 fill-current"
-                  >
-                    <path d="M256 80c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 144L48 224c-17.7 0-32 14.3-32 32s14.3 32 32 32l144 0 0 144c0 17.7 14.3 32 32 32s32-14.3 32-32l0-144 144 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-144 0 0-144z" />
-                  </svg>
                 </button>
               </div>
               <div className="text-sm text-gray-400">
@@ -6132,9 +6625,26 @@
                     )}
                   </div>
 
-                  {/* 
-        NEW FIELDS: 
-        For double-arm, user can place population sizes 
+                  {/* PICO Import Button */}
+                  <div className="mt-6">
+                    <button
+                      onClick={() => setIsPicoMode(!isPicoMode)}
+                      className={`w-full py-3 px-4 rounded-lg font-semibold transition duration-300 flex items-center justify-center gap-2 ${
+                        isPicoMode
+                          ? "bg-purple-600 hover:bg-purple-700 text-white"
+                          : "bg-gray-700 hover:bg-gray-600 text-gray-100"
+                      }`}
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      {isPicoMode ? "Exit PICO Mode" : "Import PICO Table"}
+                    </button>
+                  </div>
+
+                  {/*
+        NEW FIELDS:
+        For double-arm, user can place population sizes
         that we will treat as "Total" for Intervention or Comparison
       */}
                   {groupType === "intervention_comparison" &&
@@ -6242,7 +6752,94 @@
                     </div>
                   )}
 
+                  {/* PICO Input Interface */}
+                  {isPicoMode && (
+                    <div className="mt-6 p-6 bg-gray-800/50 rounded-lg border border-purple-500/30">
+                      <h3 className="text-lg font-bold text-purple-400 mb-4">PICO Table Import</h3>
+
+                      {!picoShowPreview ? (
+                        <>
+                          {/* Orientation Selector */}
+                          <div className="mb-4">
+                            <label className="block font-semibold mb-2 text-gray-300">
+                              Table Orientation
+                            </label>
+                            <select
+                              value={picoOrientation}
+                              onChange={(e) => setPicoOrientation(e.target.value)}
+                              className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-100"
+                            >
+                              <option value="rows">Studies as Rows</option>
+                              <option value="columns">Studies as Columns</option>
+                            </select>
+                          </div>
+
+                          {/* Paste Area */}
+                          <div className="mb-4">
+                            <label className="block font-semibold mb-2 text-gray-300">
+                              Paste PICO Table
+                              <span className="text-sm text-gray-400 ml-2">(Can include text before/after table)</span>
+                            </label>
+                            <textarea
+                              value={picoRawText}
+                              onChange={(e) => setPicoRawText(e.target.value)}
+                              rows={12}
+                              placeholder="Paste your PICO table here... (e.g., from Claude with markdown table format)"
+                              className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-100 font-mono text-sm"
+                            />
+                          </div>
+
+                          {/* Process Button */}
+                          <button
+                            onClick={handlePicoProcess}
+                            disabled={!picoRawText.trim()}
+                            className="w-full py-3 px-4 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition duration-300"
+                          >
+                            Process PICO Table
+                          </button>
+                        </>
+                      ) : (
+                        <div>
+                          {/* Editable Table Preview with Highlighting */}
+                          <PicoTablePreview
+                            data={picoTableData}
+                            orientation={picoOrientation}
+                            studyIds={studyIds}
+                            suggestedLabels={suggestedBaselineLabels}
+                            variableMappings={picoVariableMappings}
+                            studyMappings={picoStudyMappings}
+                            onDataChange={setPicoTableData}
+                            onVariableMappingChange={setPicoVariableMappings}
+                            onStudyMappingChange={setPicoStudyMappings}
+                          />
+
+                          {/* Action Buttons */}
+                          <div className="mt-6 flex gap-4">
+                            <button
+                              onClick={() => {
+                                setPicoShowPreview(false);
+                                setPicoTableData([]);
+                                setPicoVariableMappings({});
+                                setPicoStudyMappings({});
+                              }}
+                              className="flex-1 py-3 px-4 bg-gray-600 hover:bg-gray-500 text-white font-semibold rounded-lg transition duration-300"
+                            >
+                              Back to Edit
+                            </button>
+                            <button
+                              onClick={handlePicoConfirm}
+                              className="flex-1 py-3 px-4 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition duration-300"
+                            >
+                              Confirm & Add Variables
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Text/Paste area for the user's tab-separated data */}
+                  {!isPicoMode && (
                   <div className="mt-4">
                     <div className="flex items-center justify-between">
                       <label className="block font-semibold text-gray-300">
@@ -6519,6 +7116,7 @@
                       </div>
                     )}
                   </div>
+                  )}
 
                   {/* Footer Buttons: Close & Add Dataset */}
                   <div className="mt-6 pt-4 border-t border-gray-700 flex justify-end gap-3">
@@ -6536,108 +7134,6 @@
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                       </svg>
                       Add Dataset
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-            {isMultipleVarModalOpen && (
-              <div className="fixed inset-0 z-50 flex items-start justify-center pt-8 overflow-y-auto">
-                {/* Dim Overlay with slight blur */}
-                <div
-                  className="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm"
-                  onClick={closeMultiVarModal}
-                />
-
-                {/* Modal Container */}
-                <div
-                  className="
-        relative max-w-3xl w-full mx-4 
-        bg-gray-800 text-gray-100 
-        rounded-xl shadow-2xl 
-        p-6 sm:p-8 
-        overflow-y-auto
-        animate-fadeIn
-      "
-                  style={{ maxHeight: "90vh" }}
-                >
-                  {/* Close Button (Icon) */}
-                  <button
-                    className="absolute top-4 right-4 text-gray-400 hover:text-gray-200 transition-colors"
-                    onClick={closeMultiVarModal}
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-6 w-6"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
-                  </button>
-
-                  {/* Title */}
-                  <h2 className="text-2xl font-bold mb-4">
-                    Add Multiple Variables
-                  </h2>
-
-                  {/* 
-         If you need additional controls like 
-         1) Baseline/Outcomes, 2) Variable Type, 
-         3) Data Entry Mode, they can go here
-         in a grid or flex layout.
-      */}
-
-                  {/* Textarea for variable names */}
-                  <div className="mt-4">
-                    <label className="block font-semibold mb-2">
-                      Variable Names
-                    </label>
-                    <textarea
-                      rows={8}
-                      value={multiVarText}
-                      onChange={(e) => setMultiVarText(e.target.value)}
-                      placeholder="Enter variable names separated by comma, tab, or newline..."
-                      className="
-            w-full p-3 
-            bg-gray-700 text-gray-100 
-            border border-gray-600 
-            rounded-lg
-            focus:outline-none focus:ring-2 focus:ring-green-500
-            placeholder-gray-400
-          "
-                    />
-                  </div>
-
-                  {/* Footer Buttons */}
-                  <div className="mt-6 flex justify-end space-x-4">
-                    <button
-                      onClick={closeMultiVarModal}
-                      className="
-            py-2 px-4 rounded-lg 
-            font-semibold
-            bg-gray-600 hover:bg-gray-500 
-            transition-colors
-          "
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleAddMultipleVariables}
-                      className="
-            py-2 px-4 rounded-lg 
-            font-semibold text-white
-            bg-green-600 hover:bg-green-700 
-            transition-colors
-          "
-                    >
-                      Add
                     </button>
                   </div>
                 </div>
@@ -7187,16 +7683,16 @@
       // Existing suggestions
       const suggestedBaselineLabels = [
         "Population",
-        "Intervention",
-        "Control group",
+        "Intervention #1",
+        "Intervention #2/Control group",
         "All outcomes",
-        "Primary Outcomes",
-        "Secondary Outcomes",
-        "Study design",
+        "Primary outcomes",
+        "Secondary outcomes",
         "Outcome assessment dates",
         "Timing (Start to End Date)",
+        "Type of Study/Study design",
         "Setting (Ambulatory, Inpatient...)",
-        "Institution",
+        "Institution and department",
         "Country",
       ];
 
