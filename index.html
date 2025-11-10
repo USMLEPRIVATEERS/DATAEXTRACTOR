@@ -7931,6 +7931,180 @@ const getTextValue = (studyId, label, variablesToUse) => {
           return missingDataRepresentation;
         }
 
+        function copyDataAsList() {
+          // Build the data based on current preview option
+          let baselineDataset = null;
+          let outcomesDataset = null;
+
+          if (previewOption === "baseline" || previewOption === "both" || previewOption === "recurrent") {
+            baselineDataset = buildDataRows(baselineVariables, previewOption === "recurrent", sortOrder, true);
+          }
+          if (previewOption === "outcomes" || previewOption === "both" || previewOption === "recurrent") {
+            outcomesDataset = buildDataRows(outcomesVariables, previewOption === "recurrent", sortOrder, false);
+          }
+
+          let outputText = "";
+
+          // Helper function to format a single value for list output
+          const formatValueForList = (variable, columnName, value) => {
+            if (!value || value === getMissingValue()) return null;
+
+            // For network mode, columnName doesn't include intervention name
+            if (groupType === "network") {
+              if (variable.type === "dichotomous") {
+                const events = variable.value.events;
+                const total = variable.value.total;
+                return `${events || getMissingValue()}/${total || getMissingValue()}`;
+              } else if (variable.type === "continuous") {
+                const mean = variable.value.mean;
+                const sd = variable.value.sd;
+                const total = variable.value.total;
+                return `Mean=${mean || getMissingValue()}, SD=${sd || getMissingValue()}, N=${total || getMissingValue()}`;
+              } else if (variable.type === "text") {
+                return variable.value || getMissingValue();
+              } else if (variable.type === "population_size") {
+                return `N=${variable.value.population || getMissingValue()}`;
+              }
+            }
+
+            return value;
+          };
+
+          // Helper function to format a row of data for a study
+          const formatStudyData = (studyId, variableLabel, variablesToUse, isNetwork = false) => {
+            const studyVars = variablesToUse[studyId] || [];
+            const variables = studyVars.filter(v => v.label === variableLabel);
+
+            if (variables.length === 0) return null;
+
+            const parts = [];
+
+            if (isNetwork) {
+              // Network mode: group by intervention
+              variables.forEach(variable => {
+                if (!variable.interventionName) return;
+
+                let valueStr = "";
+                if (variable.type === "dichotomous") {
+                  valueStr = `${variable.value.events || getMissingValue()}/${variable.value.total || getMissingValue()}`;
+                } else if (variable.type === "continuous") {
+                  const mean = variable.value.mean || getMissingValue();
+                  const sd = variable.value.sd || getMissingValue();
+                  const total = variable.value.total || getMissingValue();
+                  valueStr = `${mean}±${sd}, N=${total}`;
+                } else if (variable.type === "text") {
+                  valueStr = variable.value || getMissingValue();
+                } else if (variable.type === "population_size") {
+                  valueStr = `N=${variable.value.population || getMissingValue()}`;
+                }
+
+                parts.push(`${valueStr} (${variable.interventionName})`);
+              });
+            } else if (groupType === "intervention_comparison") {
+              // Double arm mode
+              variables.forEach(variable => {
+                if (variable.armType === "double") {
+                  if (variable.type === "dichotomous") {
+                    const intEvents = variable.value.intervention || getMissingValue();
+                    const intTotal = variable.value.interventionTotal || getMissingValue();
+                    const compEvents = variable.value.comparison || getMissingValue();
+                    const compTotal = variable.value.comparisonTotal || getMissingValue();
+                    parts.push(`${intEvents}/${intTotal} (${groupNames.interventionName}); ${compEvents}/${compTotal} (${groupNames.comparisonName})`);
+                  } else if (variable.type === "continuous") {
+                    const intMean = variable.value.intervention.mean || getMissingValue();
+                    const intSD = variable.value.intervention.sd || getMissingValue();
+                    const intTotal = variable.value.interventionTotal || getMissingValue();
+                    const compMean = variable.value.comparison.mean || getMissingValue();
+                    const compSD = variable.value.comparison.sd || getMissingValue();
+                    const compTotal = variable.value.comparisonTotal || getMissingValue();
+                    parts.push(`${intMean}±${intSD}, N=${intTotal} (${groupNames.interventionName}); ${compMean}±${compSD}, N=${compTotal} (${groupNames.comparisonName})`);
+                  } else if (variable.type === "text") {
+                    const intText = variable.value.intervention || getMissingValue();
+                    const compText = variable.value.comparison || getMissingValue();
+                    parts.push(`${intText} (${groupNames.interventionName}); ${compText} (${groupNames.comparisonName})`);
+                  } else if (variable.type === "population_size") {
+                    const intPop = variable.value.interventionPop || getMissingValue();
+                    const compPop = variable.value.comparisonPop || getMissingValue();
+                    parts.push(`N=${intPop} (${groupNames.interventionName}); N=${compPop} (${groupNames.comparisonName})`);
+                  }
+                } else if (variable.armType === "single") {
+                  // Single arm within double arm mode
+                  if (variable.type === "dichotomous") {
+                    parts.push(`${variable.value.events || getMissingValue()}/${variable.value.total || getMissingValue()}`);
+                  } else if (variable.type === "continuous") {
+                    const mean = variable.value.mean || getMissingValue();
+                    const sd = variable.value.sd || getMissingValue();
+                    const total = variable.value.total || getMissingValue();
+                    parts.push(`${mean}±${sd}, N=${total}`);
+                  } else if (variable.type === "text") {
+                    parts.push(variable.value || getMissingValue());
+                  } else if (variable.type === "population_size") {
+                    parts.push(`N=${variable.value.population || getMissingValue()}`);
+                  }
+                }
+              });
+            } else {
+              // Single arm mode (intervention only)
+              variables.forEach(variable => {
+                if (variable.type === "dichotomous") {
+                  parts.push(`${variable.value.events || getMissingValue()}/${variable.value.total || getMissingValue()}`);
+                } else if (variable.type === "continuous") {
+                  const mean = variable.value.mean || getMissingValue();
+                  const sd = variable.value.sd || getMissingValue();
+                  const total = variable.value.total || getMissingValue();
+                  parts.push(`${mean}±${sd}, N=${total}`);
+                } else if (variable.type === "text") {
+                  parts.push(variable.value || getMissingValue());
+                } else if (variable.type === "population_size") {
+                  parts.push(`N=${variable.value.population || getMissingValue()}`);
+                }
+              });
+            }
+
+            return parts.length > 0 ? parts.join("; ") : null;
+          };
+
+          // Process baseline data
+          if (baselineDataset && baselineDataset.allVariableLabels.length > 0) {
+            baselineDataset.allVariableLabels.forEach(label => {
+              outputText += `${label} (BASELINE):\n`;
+              studyIds.forEach(studyId => {
+                const studyData = formatStudyData(studyId, label, baselineVariables, groupType === "network");
+                if (studyData) {
+                  outputText += `- ${studyId}: ${studyData}\n`;
+                }
+              });
+              outputText += "\n";
+            });
+          }
+
+          // Process outcomes data
+          if (outcomesDataset && outcomesDataset.allVariableLabels.length > 0) {
+            outcomesDataset.allVariableLabels.forEach(label => {
+              outputText += `${label} (OUTCOME):\n`;
+              studyIds.forEach(studyId => {
+                const studyData = formatStudyData(studyId, label, outcomesVariables, groupType === "network");
+                if (studyData) {
+                  outputText += `- ${studyId}: ${studyData}\n`;
+                }
+              });
+              outputText += "\n";
+            });
+          }
+
+          // Copy to clipboard
+          if (outputText) {
+            navigator.clipboard.writeText(outputText).then(() => {
+              alert("Data copied to clipboard as list format!");
+            }).catch(err => {
+              console.error("Failed to copy to clipboard:", err);
+              alert("Failed to copy to clipboard. Please check browser permissions.");
+            });
+          } else {
+            alert("No data to copy!");
+          }
+        }
+
         function getWeightVariableOptions() {
           const variableLabelsSet = new Set();
 
@@ -10350,6 +10524,14 @@ const handleDownloadFolder = async () => {
                 }`}
               >
                 Recurrent
+              </button>
+              <button
+                onClick={copyDataAsList}
+                className="font-semibold py-2 px-4 rounded-lg transition duration-300 bg-green-600 hover:bg-green-700 flex items-center space-x-2"
+                title="Copy data as structured list for AI analysis"
+              >
+                <i className="fas fa-clipboard-list"></i>
+                <span>Copy as List</span>
               </button>
             </div>
             <div className="mt-4 flex flex-col md:flex-row md:items-center md:space-x-4">
