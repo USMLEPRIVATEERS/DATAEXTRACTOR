@@ -5012,8 +5012,8 @@
               .trim()
               .split("\n")
               .map((line) => {
-                // Split by tab or " ± " (plus-minus symbol)
-                const cells = line.split(/\t| ± /).map((cell) => cell.trim());
+                // Split by tab, " ± " (with spaces), or "±" (without spaces)
+                const cells = line.split(/\t|\s*±\s*/).map((cell) => cell.trim());
                 return cells;
               });
           }
@@ -6852,7 +6852,7 @@
                             const rows = importDataText
                               .trim()
                               .split("\n")
-                              .map((line) => line.split(/\t| ± /));
+                              .map((line) => line.split(/\t|\s*±\s*/));
                             setSpreadsheetData(rows);
                             setIsSpreadsheetMode(true);
                           }}
@@ -7711,7 +7711,7 @@
         const [customMissingValue, setCustomMissingValue] = useState("");
         const [weightVariable, setWeightVariable] = useState("");
         const [isWeightOpen, setIsWeightOpen] = useState(false);
-        const [sortOrder, setSortOrder] = useState("addition");
+        const [sortOrder, setSortOrder] = useState("fixed_alphabetical");
         // NEW CODE START: State and logic for Google Drive modal
         const [isDriveModalOpen, setIsDriveModalOpen] = useState(false);
         const [driveLinks, setDriveLinks] = useState({
@@ -10935,7 +10935,7 @@ const handleDownloadFolder = async () => {
 
             {/* Download Folder Modal */}
             {isDownloadModalOpen && (
-              <div className="fixed inset-0 flex items-start justify-center z-50 pt-32 overflow-y-auto">
+              <div className="fixed inset-0 flex items-end justify-center z-50 pb-8 overflow-y-auto">
                 <div className="absolute inset-0 bg-black opacity-50"></div>
                 <div className="bg-gray-900 text-gray-100 p-6 rounded-lg z-50 w-11/12 md:w-2/3 lg:w-1/2">
                   <h2 className="text-xl font-bold mb-4">
@@ -11031,7 +11031,7 @@ const handleDownloadFolder = async () => {
               </div>
             )}
             {isDriveModalOpen && (
-              <div className="fixed inset-0 flex items-start justify-center z-50 pt-32 overflow-y-auto">
+              <div className="fixed inset-0 flex items-end justify-center z-50 pb-8 overflow-y-auto">
                 <div className="absolute inset-0 bg-black opacity-50"></div>
                 <div
                   className="relative bg-gray-900 text-gray-100 p-6 rounded-lg w-11/12 md:w-2/3 lg:w-1/2 max-h-96 overflow-y-auto"
