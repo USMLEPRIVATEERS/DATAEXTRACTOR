@@ -2,21 +2,108 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Data Extraction App for research data management" />
     <title>Data Extraction App</title>
+    <!-- Preconnect to CDNs for faster resource loading -->
+    <link rel="preconnect" href="https://unpkg.com">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
     <!-- Tailwind CSS -->
     <link
       href="https://unpkg.com/tailwindcss@^2.2/dist/tailwind.min.css"
       rel="stylesheet"
     />
-    <!-- Include SheetJS library for Excel file generation -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Include SheetJS library for Excel file generation - Deferred loading -->
+    <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <!-- Existing scripts... -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
-    <!-- Include FileSaver.js library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+    <!-- Include FileSaver.js library - Deferred loading -->
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <!-- Font Awesome for icons -->
     <!-- Removed due to CORS issues when opening from file:// -->
     <style>
+      /* CSS Variables for Theme System */
+      :root {
+        --bg-primary: #ffffff;
+        --bg-secondary: #f9fafb;
+        --bg-tertiary: #f3f4f6;
+        --text-primary: #111827;
+        --text-secondary: #374151;
+        --text-tertiary: #6b7280;
+        --border-primary: #e5e7eb;
+        --border-secondary: #d1d5db;
+        --scrollbar-track: #e5e7eb;
+        --scrollbar-thumb: #9ca3af;
+        --scrollbar-thumb-hover: #6b7280;
+        --container-bg: #ffffff;
+        --container-border: #e5e7eb;
+        --container-shadow: rgba(0, 0, 0, 0.1);
+        --neon-primary: #3b82f6;
+        --neon-secondary: #06b6d4;
+        --dropzone-border: rgba(59, 130, 246, 0.4);
+        --dropzone-bg-hover: rgba(59, 130, 246, 0.05);
+        --dropzone-shadow: rgba(59, 130, 246, 0.2);
+        --overlay-gradient-1: rgba(59, 130, 246, 0.08);
+        --overlay-gradient-2: rgba(6, 182, 212, 0.08);
+      }
+
+      body.dark-mode {
+        --bg-primary: linear-gradient(135deg, #0c0c0c 0%, #1e1e1e 100%);
+        --bg-secondary: #1a1a1a;
+        --bg-tertiary: #242424;
+        --text-primary: #e8e8e8;
+        --text-secondary: #e0e0e0;
+        --text-tertiary: #d1d1d1;
+        --border-primary: #2e2e2e;
+        --border-secondary: #3a3a3a;
+        --scrollbar-track: #242424;
+        --scrollbar-thumb: linear-gradient(180deg, #4a4a4a 0%, #666 100%);
+        --scrollbar-thumb-hover: linear-gradient(180deg, #5e5e5e 0%, #777 100%);
+        --container-bg: #1a1a1a;
+        --container-border: #2e2e2e;
+        --container-shadow: rgba(0, 0, 0, 0.7);
+        --neon-primary: #32ff96;
+        --neon-secondary: #57f9ff;
+        --dropzone-border: rgba(87, 249, 255, 0.4);
+        --dropzone-bg-hover: rgba(87, 249, 255, 0.05);
+        --dropzone-shadow: rgba(50, 255, 150, 0.2);
+        --overlay-gradient-1: rgba(87, 249, 255, 0.12);
+        --overlay-gradient-2: rgba(50, 255, 150, 0.12);
+      }
+
+      /* Theme Toggle Button Styles */
+      .theme-toggle {
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+        z-index: 100;
+        background: var(--container-bg);
+        border: 2px solid var(--border-primary);
+        border-radius: 50%;
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 6px var(--container-shadow);
+      }
+
+      .theme-toggle:hover {
+        transform: scale(1.1);
+        border-color: var(--neon-primary);
+        box-shadow: 0 0 20px var(--dropzone-shadow);
+      }
+
+      .theme-toggle svg {
+        width: 24px;
+        height: 24px;
+        fill: var(--text-primary);
+        transition: all 0.3s ease;
+      }
+
       .dragging {
         opacity: 0.3;
         box-shadow: 0 0 15px rgba(255, 255, 255, 0.25),
@@ -30,14 +117,14 @@
 
       .dropzone {
         transition: all 0.3s ease-in-out;
-        border: 2px dashed rgba(87, 249, 255, 0.4);
+        border: 2px dashed var(--dropzone-border);
         border-radius: 16px;
         position: relative;
       }
       .dropzone:hover {
-        background: rgba(87, 249, 255, 0.05);
-        box-shadow: inset 0 0 10px rgba(87, 249, 255, 0.1),
-          0 0 15px rgba(50, 255, 150, 0.2);
+        background: var(--dropzone-bg-hover);
+        box-shadow: inset 0 0 10px var(--dropzone-bg-hover),
+          0 0 15px var(--dropzone-shadow);
         transform: perspective(800px) translateZ(5px);
       }
 
@@ -49,68 +136,74 @@
         width: 12px;
       }
       ::-webkit-scrollbar-track {
-        background: #242424;
+        background: var(--scrollbar-track);
         border-radius: 12px;
       }
       ::-webkit-scrollbar-thumb {
-        background: linear-gradient(180deg, #4a4a4a 0%, #666 100%);
+        background: var(--scrollbar-thumb);
         border-radius: 12px;
-        border: 2px solid #242424;
+        border: 2px solid var(--scrollbar-track);
       }
       ::-webkit-scrollbar-thumb:hover {
-        background: linear-gradient(180deg, #5e5e5e 0%, #777 100%);
+        background: var(--scrollbar-thumb-hover);
       }
 
       /* Firefox */
       * {
         scrollbar-width: thin;
-        scrollbar-color: #666 #242424;
+        scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
       }
       .modern-scrollbar {
         scrollbar-width: thin;
-        scrollbar-color: #666 #242424;
+        scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
       }
       .modern-scrollbar::-webkit-scrollbar {
         width: 12px;
       }
       .modern-scrollbar::-webkit-scrollbar-track {
-        background: #242424;
+        background: var(--scrollbar-track);
         border-radius: 12px;
       }
       .modern-scrollbar::-webkit-scrollbar-thumb {
-        background: linear-gradient(180deg, #4a4a4a 0%, #666 100%);
+        background: var(--scrollbar-thumb);
         border-radius: 12px;
-        border: 2px solid #242424;
+        border: 2px solid var(--scrollbar-track);
       }
       .modern-scrollbar::-webkit-scrollbar-thumb:hover {
-        background: linear-gradient(180deg, #5e5e5e 0%, #777 100%);
+        background: var(--scrollbar-thumb-hover);
       }
 
       /*****************************************
-   * GLOBAL DARK MODE & BASE FONTS
+   * GLOBAL THEME & BASE FONTS
    *****************************************/
       body {
-        background: linear-gradient(135deg, #0c0c0c 0%, #1e1e1e 100%);
+        background: var(--bg-secondary);
         font-family: "Inter", sans-serif;
-        color: #e8e8e8;
+        color: var(--text-primary);
         margin: 0;
         padding: 0;
         overflow-x: hidden;
+        transition: background 0.3s ease, color 0.3s ease;
+      }
+
+      body.dark-mode {
+        background: linear-gradient(135deg, #0c0c0c 0%, #1e1e1e 100%);
       }
 
       /*****************************************
    * MAIN CONTAINER (FUTURISTIC 3D NEON BOX)
    *****************************************/
       #root > div {
-        background: #1a1a1a;
-        border: 1px solid #2e2e2e;
+        background: var(--container-bg);
+        border: 1px solid var(--container-border);
         border-radius: 20px; /* bigger rounding for a more 3D look */
         position: relative;
         padding: 24px;
         overflow: hidden;
-        box-shadow: 0 0 25px rgba(0, 0, 0, 0.7),
-          0 0 15px rgba(50, 255, 150, 0.35), inset 0 0 16px rgba(0, 0, 0, 0.6);
+        box-shadow: 0 0 25px var(--container-shadow),
+          0 0 15px var(--dropzone-shadow), inset 0 0 16px var(--container-shadow);
         transform: perspective(1400px) translateZ(0);
+        transition: all 0.3s ease;
       }
       /* Subtle animated gradient overlay for a futuristic feel */
       #root > div::before {
@@ -122,15 +215,15 @@
         height: 180%;
         background: radial-gradient(
             circle at 30% 30%,
-            rgba(87, 249, 255, 0.12),
+            var(--overlay-gradient-1),
             transparent 40%
           ),
           radial-gradient(
             circle at 70% 70%,
-            rgba(50, 255, 150, 0.12),
+            var(--overlay-gradient-2),
             transparent 40%
           ),
-          linear-gradient(135deg, rgba(32, 255, 200, 0.08) 0%, transparent 100%);
+          linear-gradient(135deg, var(--overlay-gradient-1) 0%, transparent 100%);
         pointer-events: none;
         z-index: 0;
         border-radius: 50%;
@@ -159,7 +252,7 @@
       h3 {
         margin: 0;
         font-weight: 700;
-        color: #ebebeb;
+        color: var(--text-primary);
         text-shadow: 0 0 6px rgba(255, 255, 255, 0.04);
         display: inline-block; /* limit underline width to text only */
         position: relative;
@@ -175,7 +268,7 @@
         bottom: 0; /* underline sits right at the bottom of the text container */
         width: 100%;
         height: 3px;
-        background: linear-gradient(90deg, #32ff96, #57f9ff, #32ff96);
+        background: linear-gradient(90deg, var(--neon-primary), var(--neon-secondary), var(--neon-primary));
         border-radius: 2px;
         animation: neonFlow 2.5s linear infinite;
       }
@@ -352,12 +445,13 @@
       label,
       strong,
       p,
-      span,
-      h2,
-      h3,
+      span {
+        color: var(--text-secondary) !important;
+      }
+
       input,
       option {
-        color: #e0e0e0 !important;
+        color: var(--text-primary) !important;
       }
     </style>
   </head>
@@ -366,13 +460,13 @@
   >
     <div id="root" class="w-full p-6"></div>
 
-    <!-- React and ReactDOM -->
+    <!-- React and ReactDOM - Production versions for better performance -->
     <script
-      src="https://unpkg.com/react@17/umd/react.development.js"
+      src="https://unpkg.com/react@17/umd/react.production.min.js"
       crossorigin
     ></script>
     <script
-      src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"
+      src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js"
       crossorigin
     ></script>
 
@@ -790,6 +884,30 @@
 
         // Use useRef for timer to avoid re-renders
         const autoSaveTimer = useRef(null);
+
+        // ============================================
+        // THEME MANAGEMENT
+        // ============================================
+        const [isDarkMode, setIsDarkMode] = useState(() => {
+          // Load theme preference from localStorage, default to false (light mode)
+          const savedTheme = localStorage.getItem('theme');
+          return savedTheme === 'dark';
+        });
+
+        // Apply theme to body on mount and when theme changes
+        useEffect(() => {
+          if (isDarkMode) {
+            document.body.classList.add('dark-mode');
+            localStorage.setItem('theme', 'dark');
+          } else {
+            document.body.classList.remove('dark-mode');
+            localStorage.setItem('theme', 'light');
+          }
+        }, [isDarkMode]);
+
+        const toggleTheme = () => {
+          setIsDarkMode(!isDarkMode);
+        };
 
         const handleBackupDownload = () => {
           // 1) Determine naming for the file
@@ -1382,6 +1500,24 @@
 
         return (
           <div className="min-h-screen">
+            {/* Theme Toggle Button */}
+            <button
+              onClick={toggleTheme}
+              className="theme-toggle"
+              aria-label="Toggle theme"
+              title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            >
+              {isDarkMode ? (
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                  <path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="currentColor"/>
+                </svg>
+              )}
+            </button>
+
             {/* Fixed Navigation Bar */}
             {currentScreen !== "welcome" && (
               <div className="fixed top-0 left-0 right-0 z-50 bg-gray-900 border-b border-gray-700 shadow-lg">
