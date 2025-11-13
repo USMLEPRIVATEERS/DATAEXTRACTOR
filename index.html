@@ -2,21 +2,170 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Data Extraction App for research data management" />
     <title>Data Extraction App</title>
+    <!-- Preconnect to CDNs for faster resource loading -->
+    <link rel="preconnect" href="https://unpkg.com">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
     <!-- Tailwind CSS -->
     <link
       href="https://unpkg.com/tailwindcss@^2.2/dist/tailwind.min.css"
       rel="stylesheet"
     />
-    <!-- Include SheetJS library for Excel file generation -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Include SheetJS library for Excel file generation - Deferred loading -->
+    <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <!-- Existing scripts... -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
-    <!-- Include FileSaver.js library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+    <!-- Include FileSaver.js library - Deferred loading -->
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <!-- Font Awesome for icons -->
     <!-- Removed due to CORS issues when opening from file:// -->
     <style>
+      /* CSS Variables for Theme System */
+      :root {
+        /* Backgrounds */
+        --bg-primary: #ffffff;
+        --bg-secondary: #f9fafb;
+        --bg-tertiary: #f3f4f6;
+        --bg-navbar: #ffffff;
+        --bg-button-primary: #3b82f6;
+        --bg-button-primary-hover: #2563eb;
+        --bg-button-secondary: #6b7280;
+        --bg-button-secondary-hover: #4b5563;
+        --bg-input: #ffffff;
+        --bg-table-row: #ffffff;
+        --bg-table-row-hover: #f9fafb;
+        --bg-modal: rgba(255, 255, 255, 0.98);
+        --bg-modal-overlay: rgba(0, 0, 0, 0.5);
+
+        /* Text colors */
+        --text-primary: #111827;
+        --text-secondary: #374151;
+        --text-tertiary: #6b7280;
+        --text-on-button: #ffffff;
+
+        /* Borders */
+        --border-primary: #e5e7eb;
+        --border-secondary: #d1d5db;
+        --border-navbar: #e5e7eb;
+        --border-input: #d1d5db;
+        --border-table: #e5e7eb;
+
+        /* Scrollbar */
+        --scrollbar-track: #e5e7eb;
+        --scrollbar-thumb: #9ca3af;
+        --scrollbar-thumb-hover: #6b7280;
+
+        /* Container */
+        --container-bg: #ffffff;
+        --container-border: #e5e7eb;
+        --container-shadow: rgba(0, 0, 0, 0.1);
+
+        /* Neon/Accent colors */
+        --neon-primary: #3b82f6;
+        --neon-secondary: #06b6d4;
+        --accent-color: #3b82f6;
+
+        /* Special effects */
+        --dropzone-border: rgba(59, 130, 246, 0.4);
+        --dropzone-bg-hover: rgba(59, 130, 246, 0.05);
+        --dropzone-shadow: rgba(59, 130, 246, 0.2);
+        --overlay-gradient-1: rgba(59, 130, 246, 0.08);
+        --overlay-gradient-2: rgba(6, 182, 212, 0.08);
+        --hover-shadow: rgba(59, 130, 246, 0.1);
+      }
+
+      body.dark-mode {
+        /* Backgrounds */
+        --bg-primary: linear-gradient(135deg, #0c0c0c 0%, #1e1e1e 100%);
+        --bg-secondary: #1a1a1a;
+        --bg-tertiary: #242424;
+        --bg-navbar: #1a1a1a;
+        --bg-button-primary: #3b82f6;
+        --bg-button-primary-hover: #2563eb;
+        --bg-button-secondary: #374151;
+        --bg-button-secondary-hover: #4b5563;
+        --bg-input: #1e1e1e;
+        --bg-table-row: #1a1a1a;
+        --bg-table-row-hover: #242424;
+        --bg-modal: rgba(26, 26, 26, 0.98);
+        --bg-modal-overlay: rgba(0, 0, 0, 0.8);
+
+        /* Text colors */
+        --text-primary: #e8e8e8;
+        --text-secondary: #e0e0e0;
+        --text-tertiary: #d1d1d1;
+        --text-on-button: #ffffff;
+
+        /* Borders */
+        --border-primary: #2e2e2e;
+        --border-secondary: #3a3a3a;
+        --border-navbar: #2e2e2e;
+        --border-input: #3a3a3a;
+        --border-table: #2e2e2e;
+
+        /* Scrollbar */
+        --scrollbar-track: #242424;
+        --scrollbar-thumb: #666;
+        --scrollbar-thumb-hover: #777;
+
+        /* Container */
+        --container-bg: #1a1a1a;
+        --container-border: #2e2e2e;
+        --container-shadow: rgba(0, 0, 0, 0.7);
+
+        /* Neon/Accent colors */
+        --neon-primary: #32ff96;
+        --neon-secondary: #57f9ff;
+        --accent-color: #32ff96;
+
+        /* Special effects */
+        --dropzone-border: rgba(87, 249, 255, 0.4);
+        --dropzone-bg-hover: rgba(87, 249, 255, 0.05);
+        --dropzone-shadow: rgba(50, 255, 150, 0.2);
+        --overlay-gradient-1: rgba(87, 249, 255, 0.12);
+        --overlay-gradient-2: rgba(50, 255, 150, 0.12);
+        --hover-shadow: rgba(50, 255, 150, 0.08);
+      }
+
+      /* Theme Toggle Button Styles */
+      .theme-toggle {
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+        z-index: 100;
+        background: var(--container-bg);
+        border: 2px solid var(--border-primary);
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 6px var(--container-shadow);
+      }
+
+      .theme-toggle:hover {
+        transform: scale(1.1) rotate(15deg);
+        border-color: var(--neon-primary);
+        box-shadow: 0 0 20px var(--dropzone-shadow);
+      }
+
+      .theme-toggle svg {
+        width: 26px;
+        height: 26px;
+        color: var(--text-primary);
+        transition: all 0.3s ease;
+      }
+
+      .theme-toggle svg path {
+        stroke: var(--text-primary);
+      }
+
       .dragging {
         opacity: 0.3;
         box-shadow: 0 0 15px rgba(255, 255, 255, 0.25),
@@ -30,14 +179,14 @@
 
       .dropzone {
         transition: all 0.3s ease-in-out;
-        border: 2px dashed rgba(87, 249, 255, 0.4);
+        border: 2px dashed var(--dropzone-border);
         border-radius: 16px;
         position: relative;
       }
       .dropzone:hover {
-        background: rgba(87, 249, 255, 0.05);
-        box-shadow: inset 0 0 10px rgba(87, 249, 255, 0.1),
-          0 0 15px rgba(50, 255, 150, 0.2);
+        background: var(--dropzone-bg-hover);
+        box-shadow: inset 0 0 10px var(--dropzone-bg-hover),
+          0 0 15px var(--dropzone-shadow);
         transform: perspective(800px) translateZ(5px);
       }
 
@@ -49,68 +198,83 @@
         width: 12px;
       }
       ::-webkit-scrollbar-track {
-        background: #242424;
+        background: var(--scrollbar-track);
         border-radius: 12px;
       }
       ::-webkit-scrollbar-thumb {
-        background: linear-gradient(180deg, #4a4a4a 0%, #666 100%);
+        background: var(--scrollbar-thumb);
         border-radius: 12px;
-        border: 2px solid #242424;
+        border: 2px solid var(--scrollbar-track);
       }
       ::-webkit-scrollbar-thumb:hover {
-        background: linear-gradient(180deg, #5e5e5e 0%, #777 100%);
+        background: var(--scrollbar-thumb-hover);
       }
 
       /* Firefox */
       * {
         scrollbar-width: thin;
-        scrollbar-color: #666 #242424;
+        scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
       }
       .modern-scrollbar {
         scrollbar-width: thin;
-        scrollbar-color: #666 #242424;
+        scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
       }
       .modern-scrollbar::-webkit-scrollbar {
         width: 12px;
       }
       .modern-scrollbar::-webkit-scrollbar-track {
-        background: #242424;
+        background: var(--scrollbar-track);
         border-radius: 12px;
       }
       .modern-scrollbar::-webkit-scrollbar-thumb {
-        background: linear-gradient(180deg, #4a4a4a 0%, #666 100%);
+        background: var(--scrollbar-thumb);
         border-radius: 12px;
-        border: 2px solid #242424;
+        border: 2px solid var(--scrollbar-track);
       }
       .modern-scrollbar::-webkit-scrollbar-thumb:hover {
-        background: linear-gradient(180deg, #5e5e5e 0%, #777 100%);
+        background: var(--scrollbar-thumb-hover);
       }
 
       /*****************************************
-   * GLOBAL DARK MODE & BASE FONTS
+   * GLOBAL THEME & BASE FONTS
    *****************************************/
       body {
-        background: linear-gradient(135deg, #0c0c0c 0%, #1e1e1e 100%);
+        background: var(--bg-secondary);
         font-family: "Inter", sans-serif;
-        color: #e8e8e8;
+        color: var(--text-primary);
         margin: 0;
         padding: 0;
         overflow-x: hidden;
+        transition: background 0.3s ease, color 0.3s ease;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      body.dark-mode {
+        background: linear-gradient(135deg, #0c0c0c 0%, #1e1e1e 100%);
+      }
+
+      #root {
+        width: 100%;
+        padding: 1.5rem;
       }
 
       /*****************************************
    * MAIN CONTAINER (FUTURISTIC 3D NEON BOX)
    *****************************************/
       #root > div {
-        background: #1a1a1a;
-        border: 1px solid #2e2e2e;
+        background: var(--container-bg);
+        border: 1px solid var(--container-border);
         border-radius: 20px; /* bigger rounding for a more 3D look */
         position: relative;
         padding: 24px;
         overflow: hidden;
-        box-shadow: 0 0 25px rgba(0, 0, 0, 0.7),
-          0 0 15px rgba(50, 255, 150, 0.35), inset 0 0 16px rgba(0, 0, 0, 0.6);
+        box-shadow: 0 0 25px var(--container-shadow),
+          0 0 15px var(--dropzone-shadow), inset 0 0 16px var(--container-shadow);
         transform: perspective(1400px) translateZ(0);
+        transition: all 0.3s ease;
       }
       /* Subtle animated gradient overlay for a futuristic feel */
       #root > div::before {
@@ -122,15 +286,15 @@
         height: 180%;
         background: radial-gradient(
             circle at 30% 30%,
-            rgba(87, 249, 255, 0.12),
+            var(--overlay-gradient-1),
             transparent 40%
           ),
           radial-gradient(
             circle at 70% 70%,
-            rgba(50, 255, 150, 0.12),
+            var(--overlay-gradient-2),
             transparent 40%
           ),
-          linear-gradient(135deg, rgba(32, 255, 200, 0.08) 0%, transparent 100%);
+          linear-gradient(135deg, var(--overlay-gradient-1) 0%, transparent 100%);
         pointer-events: none;
         z-index: 0;
         border-radius: 50%;
@@ -159,7 +323,7 @@
       h3 {
         margin: 0;
         font-weight: 700;
-        color: #ebebeb;
+        color: var(--text-primary);
         text-shadow: 0 0 6px rgba(255, 255, 255, 0.04);
         display: inline-block; /* limit underline width to text only */
         position: relative;
@@ -175,7 +339,7 @@
         bottom: 0; /* underline sits right at the bottom of the text container */
         width: 100%;
         height: 3px;
-        background: linear-gradient(90deg, #32ff96, #57f9ff, #32ff96);
+        background: linear-gradient(90deg, var(--neon-primary), var(--neon-secondary), var(--neon-primary));
         border-radius: 2px;
         animation: neonFlow 2.5s linear infinite;
       }
@@ -193,10 +357,16 @@
    *****************************************/
       .modal-bg {
         backdrop-filter: blur(12px) brightness(0.85);
+        background-color: var(--bg-modal);
         border-radius: 14px;
-        box-shadow: 0 0 20px rgba(0, 255, 255, 0.15);
-        border: 1px solid rgba(50, 255, 150, 0.2);
+        box-shadow: 0 0 20px var(--dropzone-shadow);
+        border: 1px solid var(--border-primary);
         animation: popIn 0.4s ease;
+      }
+
+      /* Modal overlay */
+      .fixed.inset-0.bg-black {
+        background-color: var(--bg-modal-overlay) !important;
       }
       @keyframes popIn {
         0% {
@@ -291,13 +461,13 @@
         max-height: 24rem;
         overflow-y: auto;
         scrollbar-width: thin;
-        scrollbar-color: #57f9ff #2b2b2b;
-        border-radius: 10px; /* Round the container for the scroll area */
-        box-shadow: inset 0 0 6px rgba(87, 249, 255, 0.08);
+        scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+        border-radius: 10px;
+        box-shadow: inset 0 0 6px var(--hover-shadow);
         transition: box-shadow 0.3s ease;
       }
       .max-h-96:hover {
-        box-shadow: inset 0 0 10px rgba(87, 249, 255, 0.15);
+        box-shadow: inset 0 0 10px var(--dropzone-shadow);
       }
 
       /*****************************************
@@ -306,26 +476,27 @@
       table {
         border-collapse: collapse;
         width: 100%;
-        color: #eeeeee;
-        background: #1f1f1f;
+        color: var(--text-primary);
+        background: var(--bg-table-row);
         border-radius: 10px;
         overflow: hidden;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5),
-          inset 0 0 10px rgba(0, 255, 255, 0.05);
+        box-shadow: 0 2px 5px var(--container-shadow),
+          inset 0 0 10px var(--hover-shadow);
         transform: translateZ(0);
       }
       th,
       td {
-        border: 1px solid #444;
+        border: 1px solid var(--border-table);
         text-align: center;
         padding: 0.75rem;
         transition: background 0.2s ease, box-shadow 0.2s ease;
       }
       th {
-        background: #2c2c2c;
+        background: var(--bg-tertiary);
         position: relative;
         font-weight: 600;
         overflow: hidden;
+        color: var(--text-primary);
       }
       th::before {
         content: "";
@@ -334,15 +505,15 @@
         left: 0;
         right: 0;
         bottom: 0;
-        background: linear-gradient(45deg, #32ff96, #57f9ff);
+        background: linear-gradient(45deg, var(--neon-primary), var(--neon-secondary));
         opacity: 0.08;
       }
       tr:hover td {
-        box-shadow: inset 0 0 6px rgba(50, 255, 150, 0.08);
+        box-shadow: inset 0 0 6px var(--hover-shadow);
       }
       td:hover {
-        background: #2b2b2b;
-        box-shadow: inset 0 0 6px rgba(50, 255, 150, 0.1);
+        background: var(--bg-table-row-hover);
+        box-shadow: inset 0 0 6px var(--hover-shadow);
         transform: perspective(600px) translateZ(2px);
       }
 
@@ -352,27 +523,119 @@
       label,
       strong,
       p,
-      span,
-      h2,
-      h3,
+      span {
+        color: var(--text-secondary) !important;
+      }
+
       input,
-      option {
-        color: #e0e0e0 !important;
+      option,
+      select,
+      textarea {
+        color: var(--text-primary) !important;
+        background-color: var(--bg-input) !important;
+        border-color: var(--border-input) !important;
+      }
+
+      /*****************************************
+   * UTILITY CLASSES TO OVERRIDE TAILWIND
+   *****************************************/
+      /* Background utilities */
+      .bg-gray-900,
+      .bg-gray-800,
+      .bg-gray-700 {
+        background-color: var(--bg-navbar) !important;
+      }
+
+      .bg-gray-100,
+      .bg-gray-50 {
+        background-color: var(--bg-secondary) !important;
+      }
+
+      /* Text utilities */
+      .text-gray-100,
+      .text-gray-200,
+      .text-white {
+        color: var(--text-primary) !important;
+      }
+
+      .text-gray-300,
+      .text-gray-400,
+      .text-gray-500,
+      .text-gray-600 {
+        color: var(--text-secondary) !important;
+      }
+
+      .text-gray-700,
+      .text-gray-800 {
+        color: var(--text-tertiary) !important;
+      }
+
+      /* Border utilities */
+      .border-gray-700,
+      .border-gray-600,
+      .border-gray-500 {
+        border-color: var(--border-navbar) !important;
+      }
+
+      .border-gray-300,
+      .border-gray-400 {
+        border-color: var(--border-primary) !important;
+      }
+
+      /* Button styles */
+      button {
+        transition: all 0.3s ease;
+      }
+
+      .bg-blue-600 {
+        background-color: var(--bg-button-primary) !important;
+      }
+
+      .bg-blue-600:hover,
+      .hover\:bg-blue-700:hover {
+        background-color: var(--bg-button-primary-hover) !important;
+      }
+
+      .bg-red-600:hover,
+      .hover\:bg-red-700:hover {
+        background-color: #dc2626 !important;
+      }
+
+      .bg-green-600:hover,
+      .hover\:bg-green-700:hover {
+        background-color: #16a34a !important;
+      }
+
+      /* Table styles */
+      table {
+        color: var(--text-primary);
+      }
+
+      tbody tr {
+        background-color: var(--bg-table-row) !important;
+        border-color: var(--border-table) !important;
+      }
+
+      tbody tr:hover {
+        background-color: var(--bg-table-row-hover) !important;
+      }
+
+      td,
+      th {
+        border-color: var(--border-table) !important;
       }
     </style>
   </head>
-  <body
-    class="bg-gray-900 text-gray-100 font-sans min-h-screen flex items-center justify-center"
-  >
-    <div id="root" class="w-full p-6"></div>
+  <body>
+    <div id="root"></div>
 
-    <!-- React and ReactDOM -->
+    <!-- React and ReactDOM - Production versions for better performance -->
     <script
-      src="https://unpkg.com/react@17/umd/react.development.js"
+      src="https://unpkg.com/react@17/umd/react.production.min.js"
       crossorigin
     ></script>
     <script
-      src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"
+      src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js"
       crossorigin
     ></script>
 
@@ -790,6 +1053,30 @@
 
         // Use useRef for timer to avoid re-renders
         const autoSaveTimer = useRef(null);
+
+        // ============================================
+        // THEME MANAGEMENT
+        // ============================================
+        const [isDarkMode, setIsDarkMode] = useState(() => {
+          // Load theme preference from localStorage, default to false (light mode)
+          const savedTheme = localStorage.getItem('theme');
+          return savedTheme === 'dark';
+        });
+
+        // Apply theme to body on mount and when theme changes
+        useEffect(() => {
+          if (isDarkMode) {
+            document.body.classList.add('dark-mode');
+            localStorage.setItem('theme', 'dark');
+          } else {
+            document.body.classList.remove('dark-mode');
+            localStorage.setItem('theme', 'light');
+          }
+        }, [isDarkMode]);
+
+        const toggleTheme = () => {
+          setIsDarkMode(!isDarkMode);
+        };
 
         const handleBackupDownload = () => {
           // 1) Determine naming for the file
@@ -1382,6 +1669,34 @@
 
         return (
           <div className="min-h-screen">
+            {/* Theme Toggle Button */}
+            <button
+              onClick={toggleTheme}
+              className="theme-toggle"
+              aria-label="Toggle theme"
+              title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            >
+              {isDarkMode ? (
+                // Sun icon for dark mode (clicking will switch to light)
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="5"/>
+                  <line x1="12" y1="1" x2="12" y2="3"/>
+                  <line x1="12" y1="21" x2="12" y2="23"/>
+                  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                  <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                  <line x1="1" y1="12" x2="3" y2="12"/>
+                  <line x1="21" y1="12" x2="23" y2="12"/>
+                  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                  <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                </svg>
+              ) : (
+                // Moon icon for light mode (clicking will switch to dark)
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                </svg>
+              )}
+            </button>
+
             {/* Fixed Navigation Bar */}
             {currentScreen !== "welcome" && (
               <div className="fixed top-0 left-0 right-0 z-50 bg-gray-900 border-b border-gray-700 shadow-lg">
