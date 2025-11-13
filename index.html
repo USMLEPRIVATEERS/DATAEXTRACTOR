@@ -86,10 +86,10 @@
         --bg-secondary: #1a1a1a;
         --bg-tertiary: #242424;
         --bg-navbar: #1a1a1a;
-        --bg-button-primary: #3b82f6;
-        --bg-button-primary-hover: #2563eb;
-        --bg-button-secondary: #374151;
-        --bg-button-secondary-hover: #4b5563;
+        --bg-button-primary: #5b9dd9;
+        --bg-button-primary-hover: #6ba8e3;
+        --bg-button-secondary: #4a6d8c;
+        --bg-button-secondary-hover: #5a7d9c;
         --bg-input: #1e1e1e;
         --bg-table-row: #1a1a1a;
         --bg-table-row-hover: #242424;
@@ -102,35 +102,35 @@
         --text-tertiary: #d1d1d1;
         --text-on-button: #ffffff;
 
-        /* Borders */
-        --border-primary: #2e2e2e;
-        --border-secondary: #3a3a3a;
-        --border-navbar: #2e2e2e;
-        --border-input: #3a3a3a;
-        --border-table: #2e2e2e;
+        /* Borders - mais destacadas */
+        --border-primary: #5b9dd9;
+        --border-secondary: #4a8bc7;
+        --border-navbar: #3a3a3a;
+        --border-input: #5b9dd9;
+        --border-table: #4a8bc7;
 
         /* Scrollbar */
         --scrollbar-track: #242424;
-        --scrollbar-thumb: #666;
-        --scrollbar-thumb-hover: #777;
+        --scrollbar-thumb: #5b9dd9;
+        --scrollbar-thumb-hover: #6ba8e3;
 
         /* Container */
         --container-bg: #1a1a1a;
-        --container-border: #2e2e2e;
-        --container-shadow: rgba(0, 0, 0, 0.7);
+        --container-border: #5b9dd9;
+        --container-shadow: rgba(91, 157, 217, 0.3);
 
-        /* Neon/Accent colors */
-        --neon-primary: #32ff96;
-        --neon-secondary: #57f9ff;
-        --accent-color: #32ff96;
+        /* Accent colors - azul fosco */
+        --neon-primary: #5b9dd9;
+        --neon-secondary: #6ba8e3;
+        --accent-color: #5b9dd9;
 
         /* Special effects */
-        --dropzone-border: rgba(87, 249, 255, 0.4);
-        --dropzone-bg-hover: rgba(87, 249, 255, 0.05);
-        --dropzone-shadow: rgba(50, 255, 150, 0.2);
-        --overlay-gradient-1: rgba(87, 249, 255, 0.12);
-        --overlay-gradient-2: rgba(50, 255, 150, 0.12);
-        --hover-shadow: rgba(50, 255, 150, 0.08);
+        --dropzone-border: rgba(91, 157, 217, 0.5);
+        --dropzone-bg-hover: rgba(91, 157, 217, 0.08);
+        --dropzone-shadow: rgba(91, 157, 217, 0.3);
+        --overlay-gradient-1: rgba(91, 157, 217, 0.12);
+        --overlay-gradient-2: rgba(107, 168, 227, 0.12);
+        --hover-shadow: rgba(91, 157, 217, 0.15);
       }
 
       /* Theme Toggle Button Styles */
@@ -389,11 +389,11 @@
       input[type="text"],
       textarea,
       select {
-        background: #2e2e2e;
-        border: 1px solid #454545;
-        color: #e0e0e0;
+        background: var(--bg-input);
+        border: 2px solid var(--border-input);
+        color: var(--text-primary);
         padding: 0.625rem 0.75rem;
-        border-radius: 8px; /* more 3D rounding */
+        border-radius: 8px;
         transition: border-color 0.3s ease, box-shadow 0.3s ease,
           transform 0.3s ease;
       }
@@ -404,9 +404,9 @@
       input:focus,
       textarea:focus,
       select:focus {
-        border-color: #57f9ff;
-        box-shadow: 0 0 8px rgba(87, 249, 255, 0.4),
-          inset 0 0 4px rgba(87, 249, 255, 0.2);
+        border-color: var(--accent-color);
+        box-shadow: 0 0 12px var(--dropzone-shadow),
+          inset 0 0 6px var(--dropzone-bg-hover);
         outline: none;
         transform: perspective(800px) translateZ(6px) rotateX(1deg);
       }
@@ -419,11 +419,11 @@
         align-items: center;
         justify-content: center;
         padding: 0.75rem 1.25rem;
-        border: 2px solid #57f9ff; /* Colored border for the glass effect */
-        border-radius: 10px; /* more rounding for 3D */
+        border: 2px solid var(--neon-secondary);
+        border-radius: 10px;
         font-weight: 600;
         cursor: pointer;
-        color: #e0e0e0;
+        color: var(--text-primary);
 
         /* Transparent "glass" background with slight blur */
         background: rgba(255, 255, 255, 0.06);
@@ -432,27 +432,27 @@
         transition: transform 0.25s ease, box-shadow 0.35s ease,
           border 0.25s ease;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.6),
-          inset 0 0 4px rgba(50, 255, 150, 0.15);
+          inset 0 0 4px var(--dropzone-bg-hover);
       }
 
       button:hover {
         transform: translateY(-3px) scale(1.04) perspective(1000px)
           rotateX(2deg);
-        border-color: #32ff96; /* slight color change on hover */
-        box-shadow: 0 5px 15px rgba(50, 255, 150, 0.3),
-          0 0 5px rgba(87, 249, 255, 0.3), inset 0 0 8px rgba(50, 255, 150, 0.2);
+        border-color: var(--neon-primary);
+        box-shadow: 0 5px 15px var(--dropzone-shadow),
+          0 0 5px var(--hover-shadow), inset 0 0 8px var(--dropzone-bg-hover);
       }
 
       button:active {
         transform: scale(0.98) translateY(2px);
-        border-color: #57f9ff;
-        box-shadow: 0 4px 10px rgba(50, 255, 150, 0.2),
-          inset 0 0 6px rgba(50, 255, 150, 0.3);
+        border-color: var(--neon-secondary);
+        box-shadow: 0 4px 10px var(--dropzone-shadow),
+          inset 0 0 6px var(--dropzone-bg-hover);
       }
 
       /* If you have color classes for borders, you could do something like:
-     .bg-blue-500 { border-color: #57f9ff; }
-     .bg-purple-500 { border-color: #af32ff; }
+     .bg-blue-500 { border-color: var(--neon-primary); }
+     .bg-purple-500 { border-color: var(--neon-secondary); }
      etc...
      Just remove the default background-color approach, since these are now glassy.
   */
@@ -2004,7 +2004,7 @@
 
               /* Dark mode styles */
               body.dark-mode .welcome-title {
-                color: #32ff96;
+                color: #5b9dd9;
               }
 
               body.dark-mode .welcome-subtitle {
@@ -2016,20 +2016,24 @@
               }
 
               body.dark-mode .welcome-button {
-                background-color: #32ff96;
-                box-shadow: 0 25px 50px -12px rgba(50, 255, 150, 0.5);
-                color: #000000;
+                background-color: #5b9dd9;
+                box-shadow: 0 25px 50px -12px rgba(91, 157, 217, 0.5);
+                color: #ffffff;
               }
 
               body.dark-mode .welcome-button:hover {
-                background-color: #57f9ff;
-                box-shadow: 0 25px 50px -12px rgba(87, 249, 255, 0.8);
-                color: #000000;
+                background-color: #6ba8e3;
+                box-shadow: 0 25px 50px -12px rgba(107, 168, 227, 0.8);
+                color: #ffffff;
+              }
+
+              body.dark-mode .welcome-button span {
+                color: #ffffff !important;
               }
 
               body.dark-mode .welcome-ack-box {
                 background-color: rgba(26, 26, 26, 0.8);
-                border: 1px solid #2e2e2e;
+                border: 1px solid #5b9dd9;
               }
 
               body.dark-mode .welcome-ack-text {
@@ -2037,13 +2041,13 @@
               }
 
               body.dark-mode .welcome-ack-link {
-                color: #32ff96;
-                text-decoration-color: rgba(50, 255, 150, 0.3);
+                color: #5b9dd9;
+                text-decoration-color: rgba(91, 157, 217, 0.3);
               }
 
               body.dark-mode .welcome-ack-link:hover {
-                color: #57f9ff;
-                text-decoration-color: rgba(87, 249, 255, 1);
+                color: #6ba8e3;
+                text-decoration-color: rgba(107, 168, 227, 1);
               }
 
               .bg-noise-pattern {
