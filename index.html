@@ -1878,14 +1878,14 @@
               {/* Main content container */}
               <div className="text-center py-12">
                 {/* Title */}
-                <h1 className="text-6xl md:text-7xl font-extrabold tracking-tight mb-6" style={{ color: '#c15f3c' }}>
+                <h1 className="welcome-title text-6xl md:text-7xl font-extrabold tracking-tight mb-6">
                   Data Extraction Tool
                 </h1>
 
                 {/* Subtitle */}
-                <p className="text-xl md:text-2xl text-black max-w-2xl mx-auto mb-14 leading-relaxed">
+                <p className="welcome-subtitle text-xl md:text-2xl max-w-2xl mx-auto mb-14 leading-relaxed">
                   Organize and manage your scientific data extraction projects
-                  <span className="block text-base text-[#374151] mt-2">with precision and efficiency</span>
+                  <span className="welcome-subtext block text-base mt-2">with precision and efficiency</span>
                 </p>
               </div>
 
@@ -1893,19 +1893,7 @@
               <div className="flex justify-center mb-8">
                 <button
                   onClick={onManageProjects}
-                  className="group relative inline-flex items-center justify-center font-bold py-6 px-16 rounded-2xl text-white text-2xl transition-all duration-500 transform hover:scale-110 focus:outline-none focus:ring-4 overflow-hidden shadow-2xl"
-                  style={{
-                    backgroundColor: '#c15f3c',
-                    boxShadow: '0 25px 50px -12px rgba(193, 95, 60, 0.5)'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#a04d2f';
-                    e.currentTarget.style.boxShadow = '0 25px 50px -12px rgba(193, 95, 60, 0.8)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = '#c15f3c';
-                    e.currentTarget.style.boxShadow = '0 25px 50px -12px rgba(193, 95, 60, 0.5)';
-                  }}
+                  className="welcome-button group relative inline-flex items-center justify-center font-bold py-6 px-16 rounded-2xl text-white text-2xl transition-all duration-500 transform hover:scale-110 focus:outline-none focus:ring-4 overflow-hidden shadow-2xl"
                 >
                   {/* Shimmer effect */}
                   <span className="absolute inset-0 w-full h-full">
@@ -1949,13 +1937,13 @@
 
               {/* Acknowledgements section */}
               <div className="mt-20 text-center">
-                <div className="inline-block bg-[#f4f3ee] backdrop-blur-sm px-8 py-4 rounded-xl border border-[#b1ada1]">
-                  <p className="text-sm text-black leading-relaxed">
-                    <strong className="text-black">Acknowledgements:</strong> This app was developed by
-                    <span className="text-black"> Marcos Antônio Dias Vilela</span>
+                <div className="welcome-ack-box inline-block backdrop-blur-sm px-8 py-4 rounded-xl">
+                  <p className="welcome-ack-text text-sm leading-relaxed">
+                    <strong>Acknowledgements:</strong> This app was developed by
+                    <span> Marcos Antônio Dias Vilela</span>
                     <span className="block mt-1">
                       (ORCID:{" "}
-                      <a href="https://orcid.org/0000-0001-9303-504X" target="_blank" className="text-[#c15f3c] hover:text-[#a04d2f] transition-colors underline decoration-[#c15f3c]/30 hover:decoration-[#a04d2f]">
+                      <a href="https://orcid.org/0000-0001-9303-504X" target="_blank" className="welcome-ack-link transition-colors underline">
                         0000-0001-9303-504X
                       </a>
                       , PubMed: Vilela MAD) at FAMERP
@@ -1966,6 +1954,98 @@
             </div>
 
             <style jsx>{`
+              /* Light mode styles (default) */
+              .welcome-title {
+                color: #c15f3c;
+              }
+
+              .welcome-subtitle {
+                color: #000000;
+              }
+
+              .welcome-subtext {
+                color: #374151;
+              }
+
+              .welcome-button {
+                background-color: #c15f3c;
+                box-shadow: 0 25px 50px -12px rgba(193, 95, 60, 0.5);
+                color: #ffffff !important;
+              }
+
+              .welcome-button:hover {
+                background-color: #a04d2f;
+                box-shadow: 0 25px 50px -12px rgba(193, 95, 60, 0.8);
+                color: #ffffff !important;
+              }
+
+              .welcome-button span {
+                color: #ffffff !important;
+              }
+
+              .welcome-ack-box {
+                background-color: #f4f3ee;
+                border: 1px solid #b1ada1;
+              }
+
+              .welcome-ack-text {
+                color: #000000;
+              }
+
+              .welcome-ack-link {
+                color: #c15f3c;
+                text-decoration-color: rgba(193, 95, 60, 0.3);
+              }
+
+              .welcome-ack-link:hover {
+                color: #a04d2f;
+                text-decoration-color: rgba(160, 77, 47, 1);
+              }
+
+              /* Dark mode styles */
+              body.dark-mode .welcome-title {
+                color: #32ff96;
+              }
+
+              body.dark-mode .welcome-subtitle {
+                color: #e8e8e8;
+              }
+
+              body.dark-mode .welcome-subtext {
+                color: #d1d1d1;
+              }
+
+              body.dark-mode .welcome-button {
+                background-color: #32ff96;
+                box-shadow: 0 25px 50px -12px rgba(50, 255, 150, 0.5);
+                color: #000000;
+              }
+
+              body.dark-mode .welcome-button:hover {
+                background-color: #57f9ff;
+                box-shadow: 0 25px 50px -12px rgba(87, 249, 255, 0.8);
+                color: #000000;
+              }
+
+              body.dark-mode .welcome-ack-box {
+                background-color: rgba(26, 26, 26, 0.8);
+                border: 1px solid #2e2e2e;
+              }
+
+              body.dark-mode .welcome-ack-text {
+                color: #e8e8e8;
+              }
+
+              body.dark-mode .welcome-ack-link {
+                color: #32ff96;
+                text-decoration-color: rgba(50, 255, 150, 0.3);
+              }
+
+              body.dark-mode .welcome-ack-link:hover {
+                color: #57f9ff;
+                text-decoration-color: rgba(87, 249, 255, 1);
+              }
+
               .bg-noise-pattern {
                 background-image: url('data:image/svg+xml,%3Csvg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"%3E%3Crect width="1" height="1" fill="%23222222"/%3E%3C/svg%3E');
                 background-size: 200px 200px;
