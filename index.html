@@ -37,6 +37,8 @@
         --bg-button-unselected: #e5e7eb;
         --bg-button-unselected-hover: #d1d5db;
         --text-button-unselected: #374151;
+        --bg-button-special: #3b82f6;
+        --bg-button-special-hover: #2563eb;
         --bg-input: #ffffff;
         --bg-table-row: #ffffff;
         --bg-table-row-hover: #f9fafb;
@@ -91,6 +93,8 @@
         --bg-button-unselected: #374151;
         --bg-button-unselected-hover: #4b5563;
         --text-button-unselected: #e0e0e0;
+        --bg-button-special: #f97316;
+        --bg-button-special-hover: #ea580c;
         --bg-input: #1e1e1e;
         --bg-table-row: #1a1a1a;
         --bg-table-row-hover: #242424;
@@ -934,11 +938,17 @@
             {dropdownOpen && (
               <div className="fixed inset-0 z-[9999] flex items-start justify-center pointer-events-none pt-20 px-4">
                 {/* Modal content */}
-                <div className="relative z-[10000] bg-gray-800 border-2 border-purple-500 rounded-xl shadow-2xl max-w-sm w-full overflow-hidden flex flex-col pointer-events-auto">
+                <div className="relative z-[10000] rounded-xl shadow-2xl max-w-sm w-full overflow-hidden flex flex-col pointer-events-auto" style={{
+                  backgroundColor: 'var(--bg-tertiary)',
+                  border: '2px solid var(--accent-color)'
+                }}>
                   {/* Close button */}
                   <button
                     onClick={() => setDropdownOpen(null)}
-                    className="absolute top-3 right-3 text-gray-400 hover:text-white transition-colors z-10"
+                    className="absolute top-3 right-3 transition-colors z-10"
+                    style={{ color: 'var(--text-tertiary)' }}
+                    onMouseEnter={(e) => e.target.style.color = 'var(--text-primary)'}
+                    onMouseLeave={(e) => e.target.style.color = 'var(--text-tertiary)'}
                   >
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -946,17 +956,17 @@
                   </button>
 
                   {/* Header - Fixed */}
-                  <div className="p-4 pb-3 flex-shrink-0 border-b border-gray-700">
-                    <h3 className="text-lg font-bold text-purple-400 mb-3 pr-8">
+                  <div className="p-4 pb-3 flex-shrink-0" style={{ borderBottom: '1px solid var(--border-primary)' }}>
+                    <h3 className="text-lg font-bold mb-3 pr-8" style={{ color: 'var(--accent-color)' }}>
                       {dropdownOpen.type === 'variable' ? 'Map Variable' : 'Map Study ID'}
                     </h3>
 
-                    <div className="mb-3 p-2 bg-gray-700 rounded-lg">
-                      <div className="text-xs text-gray-400 mb-1">Current value:</div>
-                      <div className="text-sm font-semibold text-white">{dropdownOpen.value}</div>
+                    <div className="mb-3 p-2 rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                      <div className="text-xs mb-1" style={{ color: 'var(--text-tertiary)' }}>Current value:</div>
+                      <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{dropdownOpen.value}</div>
                     </div>
 
-                    <div className="text-xs text-gray-300">
+                    <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                       Select a {dropdownOpen.type === 'variable' ? 'variable label' : 'study ID'} to map to:
                     </div>
                   </div>
@@ -967,7 +977,13 @@
                       <button
                         key={label}
                         onClick={() => handleMapping(label)}
-                        className="w-full text-left px-4 py-2 bg-gray-700 hover:bg-purple-600 rounded-lg transition-colors duration-200 text-gray-100"
+                        className="w-full text-left px-4 py-2 rounded-lg transition-colors duration-200"
+                        style={{
+                          backgroundColor: 'var(--bg-button-secondary)',
+                          color: 'var(--text-primary)'
+                        }}
+                        onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--bg-button-primary)'}
+                        onMouseLeave={(e) => e.target.style.backgroundColor = 'var(--bg-button-secondary)'}
                       >
                         {label}
                       </button>
@@ -976,7 +992,13 @@
                       <button
                         key={id}
                         onClick={() => handleMapping(id)}
-                        className="w-full text-left px-4 py-2 bg-gray-700 hover:bg-purple-600 rounded-lg transition-colors duration-200 text-gray-100"
+                        className="w-full text-left px-4 py-2 rounded-lg transition-colors duration-200"
+                        style={{
+                          backgroundColor: 'var(--bg-button-secondary)',
+                          color: 'var(--text-primary)'
+                        }}
+                        onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--bg-button-primary)'}
+                        onMouseLeave={(e) => e.target.style.backgroundColor = 'var(--bg-button-secondary)'}
                       >
                         {id}
                       </button>
@@ -1834,14 +1856,14 @@
                   onClick={onManageProjects}
                   className="inline-flex items-center justify-center font-bold py-6 px-16 rounded-xl transition-all duration-300 transform hover:scale-105 focus:outline-none shadow-lg"
                   style={{
-                    backgroundColor: 'var(--bg-button-primary)',
+                    backgroundColor: 'var(--bg-button-special)',
                     color: 'var(--text-on-button)',
                   }}
                   onMouseEnter={(e) => {
-                    e.target.style.backgroundColor = 'var(--bg-button-primary-hover)';
+                    e.target.style.backgroundColor = 'var(--bg-button-special-hover)';
                   }}
                   onMouseLeave={(e) => {
-                    e.target.style.backgroundColor = 'var(--bg-button-primary)';
+                    e.target.style.backgroundColor = 'var(--bg-button-special)';
                   }}
                 >
                   {/* Briefcase icon */}
@@ -2025,11 +2047,15 @@
                   {/* Network (Network Icon) */}
                   <button
                     onClick={() => onSelectGroup("network")}
-                    className="relative w-full inline-flex items-center justify-center font-medium py-3 px-6 rounded border border-purple-400 text-gray-100 transition-transform transform hover:scale-105 hover:border-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500
-                         hover:before:content-[''] hover:before:absolute hover:before:bottom-0 hover:before:left-0 hover:before:h-[2px] hover:before:w-full hover:before:bg-purple-400 hover:before:animate-underlineGlow"
+                    className="relative w-full inline-flex items-center justify-center font-medium py-3 px-6 rounded transition-transform transform hover:scale-105 focus:outline-none"
+                    style={{
+                      border: '1px solid var(--accent-color)',
+                      color: 'var(--text-primary)'
+                    }}
                   >
                     <span
-                      className="mr-2 text-purple-300 text-lg leading-none"
+                      className="mr-2 text-lg leading-none"
+                      style={{ color: 'var(--accent-color)' }}
                     >
                       {/* Network icon */}🕸️
                     </span>
@@ -3633,13 +3659,25 @@
               </button>
               <button
                 onClick={() => setIsFormattingModalOpen(true)}
-                className="bg-yellow-500 text-white p-2 rounded"
+                className="p-2 rounded transition-colors"
+                style={{
+                  backgroundColor: 'var(--bg-button-secondary)',
+                  color: 'var(--text-on-button)'
+                }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--bg-button-secondary-hover)'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = 'var(--bg-button-secondary)'}
               >
                 Formatting
               </button>
               <button
                 onClick={() => setIsRevManModalOpen(true)}
-                className="bg-purple-500 text-white p-2 rounded"
+                className="p-2 rounded transition-colors"
+                style={{
+                  backgroundColor: 'var(--bg-button-secondary)',
+                  color: 'var(--text-on-button)'
+                }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--bg-button-secondary-hover)'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = 'var(--bg-button-secondary)'}
               >
                 RevMan
               </button>
@@ -3661,13 +3699,25 @@
             <div className="flex space-x-4 mt-4">
               <button
                 onClick={copiarReferencia}
-                className="bg-green-500 text-white p-2 rounded"
+                className="p-2 rounded transition-colors"
+                style={{
+                  backgroundColor: 'var(--bg-button-secondary)',
+                  color: 'var(--text-on-button)'
+                }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--bg-button-secondary-hover)'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = 'var(--bg-button-secondary)'}
               >
                 {referenciaCopiada ? "Reference Copied!" : "Copy Reference"}
               </button>
               <button
                 onClick={() => setIsModalOpen(true)}
-                className="bg-purple-500 text-white p-2 rounded"
+                className="p-2 rounded transition-colors"
+                style={{
+                  backgroundColor: 'var(--bg-button-secondary)',
+                  color: 'var(--text-on-button)'
+                }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--bg-button-secondary-hover)'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = 'var(--bg-button-secondary)'}
               >
                 View History
               </button>
@@ -6871,11 +6921,17 @@
                   <div className="mt-6">
                     <button
                       onClick={() => setIsPicoMode(!isPicoMode)}
-                      className={`w-full py-3 px-4 rounded-lg font-semibold transition duration-300 flex items-center justify-center gap-2 ${
-                        isPicoMode
-                          ? "bg-purple-600 hover:bg-purple-700 text-white"
-                          : "bg-gray-700 hover:bg-gray-600 text-gray-100"
-                      }`}
+                      className="w-full py-3 px-4 rounded-lg font-semibold transition duration-300 flex items-center justify-center gap-2"
+                      style={{
+                        backgroundColor: isPicoMode ? 'var(--bg-button-primary)' : 'var(--bg-button-secondary)',
+                        color: 'var(--text-on-button)'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.backgroundColor = isPicoMode ? 'var(--bg-button-primary-hover)' : 'var(--bg-button-secondary-hover)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.backgroundColor = isPicoMode ? 'var(--bg-button-primary)' : 'var(--bg-button-secondary)';
+                      }}
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -6996,20 +7052,28 @@
 
                   {/* PICO Input Interface */}
                   {isPicoMode && (
-                    <div className="mt-6 p-6 bg-gray-800/50 rounded-lg border border-purple-500/30">
-                      <h3 className="text-lg font-bold text-purple-400 mb-4">PICO Table Import</h3>
+                    <div className="mt-6 p-6 rounded-lg" style={{
+                      backgroundColor: 'var(--bg-tertiary)',
+                      border: '1px solid var(--border-primary)'
+                    }}>
+                      <h3 className="text-lg font-bold mb-4" style={{ color: 'var(--accent-color)' }}>PICO Table Import</h3>
 
                       {!picoShowPreview ? (
                         <>
                           {/* Orientation Selector */}
                           <div className="mb-4">
-                            <label className="block font-semibold mb-2 text-gray-300">
+                            <label className="block font-semibold mb-2" style={{ color: 'var(--text-secondary)' }}>
                               Table Orientation
                             </label>
                             <select
                               value={picoOrientation}
                               onChange={(e) => setPicoOrientation(e.target.value)}
-                              className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-100"
+                              className="w-full p-3 rounded-lg focus:outline-none"
+                              style={{
+                                backgroundColor: 'var(--bg-secondary)',
+                                border: '1px solid var(--border-primary)',
+                                color: 'var(--text-primary)'
+                              }}
                             >
                               <option value="rows">Studies as Rows</option>
                               <option value="columns">Studies as Columns</option>
@@ -7027,7 +7091,12 @@
                               onChange={(e) => setPicoRawText(e.target.value)}
                               rows={12}
                               placeholder="Paste your PICO table here... (e.g., from Claude with markdown table format)"
-                              className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-100 font-mono text-sm"
+                              className="w-full p-3 rounded-lg focus:outline-none font-mono text-sm"
+                              style={{
+                                backgroundColor: 'var(--bg-secondary)',
+                                border: '1px solid var(--border-primary)',
+                                color: 'var(--text-primary)'
+                              }}
                             />
                           </div>
 
@@ -7035,7 +7104,23 @@
                           <button
                             onClick={handlePicoProcess}
                             disabled={!picoRawText.trim()}
-                            className="w-full py-3 px-4 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition duration-300"
+                            className="w-full py-3 px-4 font-semibold rounded-lg transition duration-300"
+                            style={{
+                              backgroundColor: picoRawText.trim() ? 'var(--bg-button-primary)' : 'var(--bg-button-secondary)',
+                              color: 'var(--text-on-button)',
+                              cursor: picoRawText.trim() ? 'pointer' : 'not-allowed',
+                              opacity: picoRawText.trim() ? 1 : 0.6
+                            }}
+                            onMouseEnter={(e) => {
+                              if (picoRawText.trim()) {
+                                e.target.style.backgroundColor = 'var(--bg-button-primary-hover)';
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (picoRawText.trim()) {
+                                e.target.style.backgroundColor = 'var(--bg-button-primary)';
+                              }
+                            }}
                           >
                             Process PICO Table
                           </button>
@@ -11184,31 +11269,61 @@ const handleDownloadFolder = async () => {
               <div className="flex flex-col md:flex-row md:space-x-4 space-y-4 md:space-y-0">
                 <button
                   onClick={onBackupDownload}
-                  className="flex items-center justify-center bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-6 rounded-lg transition duration-300"
+                  className="flex items-center justify-center font-semibold py-2 px-6 rounded-lg transition duration-300"
+                  style={{
+                    backgroundColor: 'var(--bg-button-secondary)',
+                    color: 'var(--text-on-button)'
+                  }}
+                  onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--bg-button-secondary-hover)'}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = 'var(--bg-button-secondary)'}
                 >
                   <i className="fas fa-save mr-2"></i> Save Backup
                 </button>
                 <button
   onClick={handlePicoDownload}
-  className="flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-6 rounded-lg transition duration-300"
+  className="flex items-center justify-center font-semibold py-2 px-6 rounded-lg transition duration-300"
+  style={{
+    backgroundColor: 'var(--bg-button-secondary)',
+    color: 'var(--text-on-button)'
+  }}
+  onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--bg-button-secondary-hover)'}
+  onMouseLeave={(e) => e.target.style.backgroundColor = 'var(--bg-button-secondary)'}
 >
   <i className="fas fa-table mr-2"></i> PICO TABLE
 </button>
                 <button
                   onClick={handleSave}
-                  className="flex items-center justify-center bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-6 rounded-lg transition duration-300"
+                  className="flex items-center justify-center font-semibold py-2 px-6 rounded-lg transition duration-300"
+                  style={{
+                    backgroundColor: 'var(--bg-button-secondary)',
+                    color: 'var(--text-on-button)'
+                  }}
+                  onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--bg-button-secondary-hover)'}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = 'var(--bg-button-secondary)'}
                 >
                   <i className="fas fa-download mr-2"></i> Save Spreadsheet
                 </button>
                 <button
                   onClick={openDownloadFolderModal}
-                  className="flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg transition duration-300"
+                  className="flex items-center justify-center font-semibold py-2 px-6 rounded-lg transition duration-300"
+                  style={{
+                    backgroundColor: 'var(--bg-button-primary)',
+                    color: 'var(--text-on-button)'
+                  }}
+                  onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--bg-button-primary-hover)'}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = 'var(--bg-button-primary)'}
                 >
                   <i className="fas fa-folder-open mr-2"></i> Download Folder
                 </button>
                 <button
                   onClick={openDriveModal}
-                  className="flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-6 rounded-lg transition duration-300"
+                  className="flex items-center justify-center font-semibold py-2 px-6 rounded-lg transition duration-300"
+                  style={{
+                    backgroundColor: 'var(--bg-button-secondary)',
+                    color: 'var(--text-on-button)'
+                  }}
+                  onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--bg-button-secondary-hover)'}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = 'var(--bg-button-secondary)'}
                 >
                   <i className="fas fa-cloud mr-2"></i> Google Drive
                 </button>
