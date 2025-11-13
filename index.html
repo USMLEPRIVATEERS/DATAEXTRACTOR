@@ -25,51 +25,109 @@
     <style>
       /* CSS Variables for Theme System */
       :root {
+        /* Backgrounds */
         --bg-primary: #ffffff;
         --bg-secondary: #f9fafb;
         --bg-tertiary: #f3f4f6;
+        --bg-navbar: #ffffff;
+        --bg-button-primary: #3b82f6;
+        --bg-button-primary-hover: #2563eb;
+        --bg-button-secondary: #6b7280;
+        --bg-button-secondary-hover: #4b5563;
+        --bg-input: #ffffff;
+        --bg-table-row: #ffffff;
+        --bg-table-row-hover: #f9fafb;
+        --bg-modal: rgba(255, 255, 255, 0.98);
+        --bg-modal-overlay: rgba(0, 0, 0, 0.5);
+
+        /* Text colors */
         --text-primary: #111827;
         --text-secondary: #374151;
         --text-tertiary: #6b7280;
+        --text-on-button: #ffffff;
+
+        /* Borders */
         --border-primary: #e5e7eb;
         --border-secondary: #d1d5db;
+        --border-navbar: #e5e7eb;
+        --border-input: #d1d5db;
+        --border-table: #e5e7eb;
+
+        /* Scrollbar */
         --scrollbar-track: #e5e7eb;
         --scrollbar-thumb: #9ca3af;
         --scrollbar-thumb-hover: #6b7280;
+
+        /* Container */
         --container-bg: #ffffff;
         --container-border: #e5e7eb;
         --container-shadow: rgba(0, 0, 0, 0.1);
+
+        /* Neon/Accent colors */
         --neon-primary: #3b82f6;
         --neon-secondary: #06b6d4;
+        --accent-color: #3b82f6;
+
+        /* Special effects */
         --dropzone-border: rgba(59, 130, 246, 0.4);
         --dropzone-bg-hover: rgba(59, 130, 246, 0.05);
         --dropzone-shadow: rgba(59, 130, 246, 0.2);
         --overlay-gradient-1: rgba(59, 130, 246, 0.08);
         --overlay-gradient-2: rgba(6, 182, 212, 0.08);
+        --hover-shadow: rgba(59, 130, 246, 0.1);
       }
 
       body.dark-mode {
+        /* Backgrounds */
         --bg-primary: linear-gradient(135deg, #0c0c0c 0%, #1e1e1e 100%);
         --bg-secondary: #1a1a1a;
         --bg-tertiary: #242424;
+        --bg-navbar: #1a1a1a;
+        --bg-button-primary: #3b82f6;
+        --bg-button-primary-hover: #2563eb;
+        --bg-button-secondary: #374151;
+        --bg-button-secondary-hover: #4b5563;
+        --bg-input: #1e1e1e;
+        --bg-table-row: #1a1a1a;
+        --bg-table-row-hover: #242424;
+        --bg-modal: rgba(26, 26, 26, 0.98);
+        --bg-modal-overlay: rgba(0, 0, 0, 0.8);
+
+        /* Text colors */
         --text-primary: #e8e8e8;
         --text-secondary: #e0e0e0;
         --text-tertiary: #d1d1d1;
+        --text-on-button: #ffffff;
+
+        /* Borders */
         --border-primary: #2e2e2e;
         --border-secondary: #3a3a3a;
+        --border-navbar: #2e2e2e;
+        --border-input: #3a3a3a;
+        --border-table: #2e2e2e;
+
+        /* Scrollbar */
         --scrollbar-track: #242424;
-        --scrollbar-thumb: linear-gradient(180deg, #4a4a4a 0%, #666 100%);
-        --scrollbar-thumb-hover: linear-gradient(180deg, #5e5e5e 0%, #777 100%);
+        --scrollbar-thumb: #666;
+        --scrollbar-thumb-hover: #777;
+
+        /* Container */
         --container-bg: #1a1a1a;
         --container-border: #2e2e2e;
         --container-shadow: rgba(0, 0, 0, 0.7);
+
+        /* Neon/Accent colors */
         --neon-primary: #32ff96;
         --neon-secondary: #57f9ff;
+        --accent-color: #32ff96;
+
+        /* Special effects */
         --dropzone-border: rgba(87, 249, 255, 0.4);
         --dropzone-bg-hover: rgba(87, 249, 255, 0.05);
         --dropzone-shadow: rgba(50, 255, 150, 0.2);
         --overlay-gradient-1: rgba(87, 249, 255, 0.12);
         --overlay-gradient-2: rgba(50, 255, 150, 0.12);
+        --hover-shadow: rgba(50, 255, 150, 0.08);
       }
 
       /* Theme Toggle Button Styles */
@@ -81,8 +139,8 @@
         background: var(--container-bg);
         border: 2px solid var(--border-primary);
         border-radius: 50%;
-        width: 48px;
-        height: 48px;
+        width: 50px;
+        height: 50px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -92,16 +150,20 @@
       }
 
       .theme-toggle:hover {
-        transform: scale(1.1);
+        transform: scale(1.1) rotate(15deg);
         border-color: var(--neon-primary);
         box-shadow: 0 0 20px var(--dropzone-shadow);
       }
 
       .theme-toggle svg {
-        width: 24px;
-        height: 24px;
-        fill: var(--text-primary);
+        width: 26px;
+        height: 26px;
+        color: var(--text-primary);
         transition: all 0.3s ease;
+      }
+
+      .theme-toggle svg path {
+        stroke: var(--text-primary);
       }
 
       .dragging {
@@ -184,10 +246,19 @@
         padding: 0;
         overflow-x: hidden;
         transition: background 0.3s ease, color 0.3s ease;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
 
       body.dark-mode {
         background: linear-gradient(135deg, #0c0c0c 0%, #1e1e1e 100%);
+      }
+
+      #root {
+        width: 100%;
+        padding: 1.5rem;
       }
 
       /*****************************************
@@ -286,10 +357,16 @@
    *****************************************/
       .modal-bg {
         backdrop-filter: blur(12px) brightness(0.85);
+        background-color: var(--bg-modal);
         border-radius: 14px;
-        box-shadow: 0 0 20px rgba(0, 255, 255, 0.15);
-        border: 1px solid rgba(50, 255, 150, 0.2);
+        box-shadow: 0 0 20px var(--dropzone-shadow);
+        border: 1px solid var(--border-primary);
         animation: popIn 0.4s ease;
+      }
+
+      /* Modal overlay */
+      .fixed.inset-0.bg-black {
+        background-color: var(--bg-modal-overlay) !important;
       }
       @keyframes popIn {
         0% {
@@ -384,13 +461,13 @@
         max-height: 24rem;
         overflow-y: auto;
         scrollbar-width: thin;
-        scrollbar-color: #57f9ff #2b2b2b;
-        border-radius: 10px; /* Round the container for the scroll area */
-        box-shadow: inset 0 0 6px rgba(87, 249, 255, 0.08);
+        scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+        border-radius: 10px;
+        box-shadow: inset 0 0 6px var(--hover-shadow);
         transition: box-shadow 0.3s ease;
       }
       .max-h-96:hover {
-        box-shadow: inset 0 0 10px rgba(87, 249, 255, 0.15);
+        box-shadow: inset 0 0 10px var(--dropzone-shadow);
       }
 
       /*****************************************
@@ -399,26 +476,27 @@
       table {
         border-collapse: collapse;
         width: 100%;
-        color: #eeeeee;
-        background: #1f1f1f;
+        color: var(--text-primary);
+        background: var(--bg-table-row);
         border-radius: 10px;
         overflow: hidden;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5),
-          inset 0 0 10px rgba(0, 255, 255, 0.05);
+        box-shadow: 0 2px 5px var(--container-shadow),
+          inset 0 0 10px var(--hover-shadow);
         transform: translateZ(0);
       }
       th,
       td {
-        border: 1px solid #444;
+        border: 1px solid var(--border-table);
         text-align: center;
         padding: 0.75rem;
         transition: background 0.2s ease, box-shadow 0.2s ease;
       }
       th {
-        background: #2c2c2c;
+        background: var(--bg-tertiary);
         position: relative;
         font-weight: 600;
         overflow: hidden;
+        color: var(--text-primary);
       }
       th::before {
         content: "";
@@ -427,15 +505,15 @@
         left: 0;
         right: 0;
         bottom: 0;
-        background: linear-gradient(45deg, #32ff96, #57f9ff);
+        background: linear-gradient(45deg, var(--neon-primary), var(--neon-secondary));
         opacity: 0.08;
       }
       tr:hover td {
-        box-shadow: inset 0 0 6px rgba(50, 255, 150, 0.08);
+        box-shadow: inset 0 0 6px var(--hover-shadow);
       }
       td:hover {
-        background: #2b2b2b;
-        box-shadow: inset 0 0 6px rgba(50, 255, 150, 0.1);
+        background: var(--bg-table-row-hover);
+        box-shadow: inset 0 0 6px var(--hover-shadow);
         transform: perspective(600px) translateZ(2px);
       }
 
@@ -450,15 +528,106 @@
       }
 
       input,
-      option {
+      option,
+      select,
+      textarea {
         color: var(--text-primary) !important;
+        background-color: var(--bg-input) !important;
+        border-color: var(--border-input) !important;
+      }
+
+      /*****************************************
+   * UTILITY CLASSES TO OVERRIDE TAILWIND
+   *****************************************/
+      /* Background utilities */
+      .bg-gray-900,
+      .bg-gray-800,
+      .bg-gray-700 {
+        background-color: var(--bg-navbar) !important;
+      }
+
+      .bg-gray-100,
+      .bg-gray-50 {
+        background-color: var(--bg-secondary) !important;
+      }
+
+      /* Text utilities */
+      .text-gray-100,
+      .text-gray-200,
+      .text-white {
+        color: var(--text-primary) !important;
+      }
+
+      .text-gray-300,
+      .text-gray-400,
+      .text-gray-500,
+      .text-gray-600 {
+        color: var(--text-secondary) !important;
+      }
+
+      .text-gray-700,
+      .text-gray-800 {
+        color: var(--text-tertiary) !important;
+      }
+
+      /* Border utilities */
+      .border-gray-700,
+      .border-gray-600,
+      .border-gray-500 {
+        border-color: var(--border-navbar) !important;
+      }
+
+      .border-gray-300,
+      .border-gray-400 {
+        border-color: var(--border-primary) !important;
+      }
+
+      /* Button styles */
+      button {
+        transition: all 0.3s ease;
+      }
+
+      .bg-blue-600 {
+        background-color: var(--bg-button-primary) !important;
+      }
+
+      .bg-blue-600:hover,
+      .hover\:bg-blue-700:hover {
+        background-color: var(--bg-button-primary-hover) !important;
+      }
+
+      .bg-red-600:hover,
+      .hover\:bg-red-700:hover {
+        background-color: #dc2626 !important;
+      }
+
+      .bg-green-600:hover,
+      .hover\:bg-green-700:hover {
+        background-color: #16a34a !important;
+      }
+
+      /* Table styles */
+      table {
+        color: var(--text-primary);
+      }
+
+      tbody tr {
+        background-color: var(--bg-table-row) !important;
+        border-color: var(--border-table) !important;
+      }
+
+      tbody tr:hover {
+        background-color: var(--bg-table-row-hover) !important;
+      }
+
+      td,
+      th {
+        border-color: var(--border-table) !important;
       }
     </style>
   </head>
-  <body
-    class="bg-gray-900 text-gray-100 font-sans min-h-screen flex items-center justify-center"
-  >
-    <div id="root" class="w-full p-6"></div>
+  <body>
+    <div id="root"></div>
 
     <!-- React and ReactDOM - Production versions for better performance -->
     <script
@@ -1508,12 +1677,22 @@
               title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
             >
               {isDarkMode ? (
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                  <path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                // Sun icon for dark mode (clicking will switch to light)
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="5"/>
+                  <line x1="12" y1="1" x2="12" y2="3"/>
+                  <line x1="12" y1="21" x2="12" y2="23"/>
+                  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                  <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                  <line x1="1" y1="12" x2="3" y2="12"/>
+                  <line x1="21" y1="12" x2="23" y2="12"/>
+                  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                  <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
                 </svg>
               ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="currentColor"/>
+                // Moon icon for light mode (clicking will switch to dark)
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
                 </svg>
               )}
             </button>
