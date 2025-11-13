@@ -4160,6 +4160,103 @@
           }
         }, []);
 
+        // Auto-fill population size and data when intervention name changes in Network mode
+        useEffect(() => {
+          if (groupType === "network" && inputValues.interventionName && inputValues.interventionName.trim()) {
+            const interventionName = inputValues.interventionName.trim();
+            const currentStudyId = inputValues.selectedStudyId || studyIds[0];
+
+            // Get all variables for current study
+            const baselineVarsForStudy = baselineVariables?.[currentStudyId] || [];
+            const outcomesVarsForStudy = outcomesVariables?.[currentStudyId] || [];
+            const allVars = [...baselineVarsForStudy, ...outcomesVarsForStudy];
+
+            // Find population_size variable for this intervention
+            const popVar = allVars.find((v) =>
+              v.type === "population_size" &&
+              v.interventionName === interventionName
+            );
+
+            // If we found a population size and the current field is empty, auto-fill it
+            if (popVar && popVar.value && popVar.value.population) {
+              const popSize = popVar.value.population;
+
+              // Auto-fill the total field if it's empty
+              if (!inputValues.variableValue.total?.trim()) {
+                setInputValues((prevValues) => ({
+                  ...prevValues,
+                  variableValue: {
+                    ...prevValues.variableValue,
+                    total: popSize
+                  }
+                }));
+              }
+            }
+
+            // Find existing variable with same label and intervention name to auto-fill mean/SD
+            if (inputValues.variableLabel && inputValues.variableType === "continuous") {
+              const existingVar = allVars.find((v) =>
+                v.label === inputValues.variableLabel &&
+                v.interventionName === interventionName &&
+                v.type === "continuous"
+              );
+
+              if (existingVar && existingVar.value) {
+                // Auto-fill mean, SD, and total if they're empty
+                const updates = {};
+                if (!inputValues.variableValue.mean?.trim() && existingVar.value.mean) {
+                  updates.mean = existingVar.value.mean;
+                }
+                if (!inputValues.variableValue.sd?.trim() && existingVar.value.sd) {
+                  updates.sd = existingVar.value.sd;
+                }
+                if (!inputValues.variableValue.total?.trim() && existingVar.value.total) {
+                  updates.total = existingVar.value.total;
+                }
+
+                if (Object.keys(updates).length > 0) {
+                  setInputValues((prevValues) => ({
+                    ...prevValues,
+                    variableValue: {
+                      ...prevValues.variableValue,
+                      ...updates
+                    }
+                  }));
+                }
+              }
+            }
+
+            // Auto-fill for dichotomous variables
+            if (inputValues.variableLabel && inputValues.variableType === "dichotomous") {
+              const existingVar = allVars.find((v) =>
+                v.label === inputValues.variableLabel &&
+                v.interventionName === interventionName &&
+                v.type === "dichotomous"
+              );
+
+              if (existingVar && existingVar.value) {
+                const updates = {};
+                if (!inputValues.variableValue.events?.trim() && existingVar.value.events) {
+                  updates.events = existingVar.value.events;
+                }
+                if (!inputValues.variableValue.total?.trim() && existingVar.value.total) {
+                  updates.total = existingVar.value.total;
+                }
+
+                if (Object.keys(updates).length > 0) {
+                  setInputValues((prevValues) => ({
+                    ...prevValues,
+                    variableValue: {
+                      ...prevValues.variableValue,
+                      ...updates
+                    }
+                  }));
+                }
+              }
+            }
+          }
+        }, [inputValues.interventionName, inputValues.variableLabel, inputValues.variableType, groupType, baselineVariables, outcomesVariables, studyIds]);
+
         // Functions to open/close the calculator modal
         const openCalculadoraModal = () => {
           setIsCalculadoraModalOpen(true);
