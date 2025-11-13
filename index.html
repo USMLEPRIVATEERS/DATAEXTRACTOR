@@ -1877,8 +1877,11 @@
 
               {/* Main content container */}
               <div className="text-center py-12">
-                {/* Title */}
-                <h1 className="text-6xl md:text-7xl font-extrabold tracking-tight mb-6 text-[#c15f3c]">
+                {/* Title with flaming effect */}
+                <h1 className="text-6xl md:text-7xl font-extrabold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-[#c15f3c] via-[#e87d50] to-[#c15f3c] animate-gradient" style={{
+                  textShadow: '0 0 20px rgba(193, 95, 60, 0.8), 0 0 40px rgba(193, 95, 60, 0.6), 0 0 60px rgba(193, 95, 60, 0.4)',
+                  filter: 'drop-shadow(0 4px 8px rgba(193, 95, 60, 0.5))'
+                }}>
                   Data Extraction Tool
                 </h1>
 
@@ -1893,7 +1896,19 @@
               <div className="flex justify-center mb-8">
                 <button
                   onClick={onManageProjects}
-                  className="group relative inline-flex items-center justify-center font-bold py-6 px-16 rounded-2xl text-white text-2xl transition-all duration-500 transform hover:scale-110 focus:outline-none focus:ring-4 focus:ring-[#c15f3c]/50 overflow-hidden shadow-2xl hover:shadow-[#c15f3c]/50 bg-[#c15f3c] hover:bg-[#a04d2f]"
+                  className="group relative inline-flex items-center justify-center font-bold py-6 px-16 rounded-2xl text-white text-2xl transition-all duration-500 transform hover:scale-110 focus:outline-none focus:ring-4 overflow-hidden shadow-2xl"
+                  style={{
+                    backgroundColor: '#c15f3c',
+                    boxShadow: '0 25px 50px -12px rgba(193, 95, 60, 0.5)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#a04d2f';
+                    e.currentTarget.style.boxShadow = '0 25px 50px -12px rgba(193, 95, 60, 0.8)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#c15f3c';
+                    e.currentTarget.style.boxShadow = '0 25px 50px -12px rgba(193, 95, 60, 0.5)';
+                  }}
                 >
                   {/* Shimmer effect */}
                   <span className="absolute inset-0 w-full h-full">
