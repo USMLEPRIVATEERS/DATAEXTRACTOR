@@ -25,56 +25,64 @@
     <style>
       /* CSS Variables for Theme System */
       :root {
+        /* Matte Color Palette */
+        --color-terracota: #c15f3c;
+        --color-terracota-dark: #a04d2d;
+        --color-beige-gray: #b1ada1;
+        --color-cream: #f4f3ee;
+        --color-white: #ffffff;
+
         /* Backgrounds */
-        --bg-primary: #ffffff;
-        --bg-secondary: #f9fafb;
-        --bg-tertiary: #f3f4f6;
-        --bg-navbar: #ffffff;
-        --bg-button-primary: #3b82f6;
-        --bg-button-primary-hover: #2563eb;
-        --bg-button-secondary: #6b7280;
-        --bg-button-secondary-hover: #4b5563;
-        --bg-input: #ffffff;
-        --bg-table-row: #ffffff;
-        --bg-table-row-hover: #f9fafb;
+        --bg-primary: var(--color-white);
+        --bg-secondary: var(--color-cream);
+        --bg-tertiary: #ebe9e4;
+        --bg-navbar: var(--color-white);
+        --bg-button-primary: var(--color-terracota);
+        --bg-button-primary-hover: var(--color-terracota-dark);
+        --bg-button-secondary: var(--color-beige-gray);
+        --bg-button-secondary-hover: #9e9a8e;
+        --bg-input: var(--color-white);
+        --bg-table-row: var(--color-white);
+        --bg-table-row-hover: var(--color-cream);
         --bg-modal: rgba(255, 255, 255, 0.98);
-        --bg-modal-overlay: rgba(0, 0, 0, 0.5);
+        --bg-modal-overlay: rgba(177, 173, 161, 0.6);
 
         /* Text colors */
-        --text-primary: #111827;
-        --text-secondary: #374151;
-        --text-tertiary: #6b7280;
-        --text-on-button: #ffffff;
+        --text-primary: #2d2d2d;
+        --text-secondary: #4a4a4a;
+        --text-tertiary: #6b6b6b;
+        --text-on-button: var(--color-white);
+        --text-on-button-secondary: var(--color-white);
 
         /* Borders */
-        --border-primary: #e5e7eb;
-        --border-secondary: #d1d5db;
-        --border-navbar: #e5e7eb;
-        --border-input: #d1d5db;
-        --border-table: #e5e7eb;
+        --border-primary: var(--color-beige-gray);
+        --border-secondary: #c9c5ba;
+        --border-navbar: var(--color-beige-gray);
+        --border-input: var(--color-beige-gray);
+        --border-table: #d4d0c5;
 
         /* Scrollbar */
-        --scrollbar-track: #e5e7eb;
-        --scrollbar-thumb: #9ca3af;
-        --scrollbar-thumb-hover: #6b7280;
+        --scrollbar-track: var(--color-cream);
+        --scrollbar-thumb: var(--color-beige-gray);
+        --scrollbar-thumb-hover: #9e9a8e;
 
         /* Container */
-        --container-bg: #ffffff;
-        --container-border: #e5e7eb;
-        --container-shadow: rgba(0, 0, 0, 0.1);
+        --container-bg: var(--color-white);
+        --container-border: var(--color-beige-gray);
+        --container-shadow: rgba(177, 173, 161, 0.2);
 
-        /* Neon/Accent colors */
-        --neon-primary: #3b82f6;
-        --neon-secondary: #06b6d4;
-        --accent-color: #3b82f6;
+        /* Accent colors */
+        --neon-primary: var(--color-terracota);
+        --neon-secondary: #d17a52;
+        --accent-color: var(--color-terracota);
 
         /* Special effects */
-        --dropzone-border: rgba(59, 130, 246, 0.4);
-        --dropzone-bg-hover: rgba(59, 130, 246, 0.05);
-        --dropzone-shadow: rgba(59, 130, 246, 0.2);
-        --overlay-gradient-1: rgba(59, 130, 246, 0.08);
-        --overlay-gradient-2: rgba(6, 182, 212, 0.08);
-        --hover-shadow: rgba(59, 130, 246, 0.1);
+        --dropzone-border: rgba(193, 95, 60, 0.4);
+        --dropzone-bg-hover: rgba(193, 95, 60, 0.05);
+        --dropzone-shadow: rgba(193, 95, 60, 0.25);
+        --overlay-gradient-1: rgba(193, 95, 60, 0.08);
+        --overlay-gradient-2: rgba(209, 122, 82, 0.08);
+        --hover-shadow: rgba(193, 95, 60, 0.12);
       }
 
       body.dark-mode {
@@ -133,37 +141,61 @@
       /* Theme Toggle Button Styles */
       .theme-toggle {
         position: fixed;
-        top: 1rem;
-        right: 1rem;
+        top: 1.25rem;
+        right: 1.25rem;
         z-index: 100;
-        background: var(--container-bg);
-        border: 2px solid var(--border-primary);
+        background: var(--bg-button-primary);
+        border: 3px solid var(--color-terracota);
         border-radius: 50%;
-        width: 50px;
-        height: 50px;
+        width: 56px;
+        height: 56px;
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
         transition: all 0.3s ease;
-        box-shadow: 0 4px 6px var(--container-shadow);
+        box-shadow: 0 4px 12px var(--dropzone-shadow);
+      }
+
+      body.dark-mode .theme-toggle {
+        background: #1a1a1a;
+        border-color: #32ff96;
+        box-shadow: 0 4px 12px rgba(50, 255, 150, 0.3);
       }
 
       .theme-toggle:hover {
-        transform: scale(1.1) rotate(15deg);
-        border-color: var(--neon-primary);
-        box-shadow: 0 0 20px var(--dropzone-shadow);
+        transform: scale(1.15) rotate(15deg);
+        box-shadow: 0 6px 20px var(--dropzone-shadow);
+      }
+
+      body.dark-mode .theme-toggle:hover {
+        box-shadow: 0 6px 20px rgba(50, 255, 150, 0.5);
       }
 
       .theme-toggle svg {
-        width: 26px;
-        height: 26px;
-        color: var(--text-primary);
+        width: 30px;
+        height: 30px;
+        color: var(--color-white);
         transition: all 0.3s ease;
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
       }
 
-      .theme-toggle svg path {
-        stroke: var(--text-primary);
+      body.dark-mode .theme-toggle svg {
+        color: #32ff96;
+        filter: drop-shadow(0 0 8px rgba(50, 255, 150, 0.6));
+      }
+
+      .theme-toggle svg path,
+      .theme-toggle svg line,
+      .theme-toggle svg circle {
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 2.5;
+      }
+
+      .theme-toggle svg path[d*="M21"] {
+        fill: currentColor;
+        stroke: none;
       }
 
       .dragging {
@@ -587,23 +619,64 @@
         transition: all 0.3s ease;
       }
 
-      .bg-blue-600 {
+      .bg-blue-600,
+      .bg-blue-700 {
         background-color: var(--bg-button-primary) !important;
+        color: var(--text-on-button) !important;
       }
 
       .bg-blue-600:hover,
       .hover\:bg-blue-700:hover {
         background-color: var(--bg-button-primary-hover) !important;
+        color: var(--text-on-button) !important;
+      }
+
+      .bg-gray-600,
+      .bg-gray-500 {
+        background-color: var(--bg-button-secondary) !important;
+        color: var(--text-on-button-secondary) !important;
+      }
+
+      .bg-gray-600:hover,
+      .hover\:bg-gray-700:hover {
+        background-color: var(--bg-button-secondary-hover) !important;
+        color: var(--text-on-button-secondary) !important;
+      }
+
+      .bg-red-600,
+      .bg-red-500 {
+        background-color: #d14b3c !important;
+        color: var(--text-on-button) !important;
       }
 
       .bg-red-600:hover,
       .hover\:bg-red-700:hover {
-        background-color: #dc2626 !important;
+        background-color: #b83d2f !important;
+        color: var(--text-on-button) !important;
+      }
+
+      .bg-green-600,
+      .bg-green-500 {
+        background-color: #7ba86f !important;
+        color: var(--text-on-button) !important;
       }
 
       .bg-green-600:hover,
       .hover\:bg-green-700:hover {
-        background-color: #16a34a !important;
+        background-color: #69945e !important;
+        color: var(--text-on-button) !important;
+      }
+
+      /* Ensure all buttons have white text */
+      button.bg-blue-600,
+      button.bg-blue-700,
+      button.bg-gray-600,
+      button.bg-gray-500,
+      button.bg-red-600,
+      button.bg-red-500,
+      button.bg-green-600,
+      button.bg-green-500 {
+        color: var(--text-on-button) !important;
       }
 
       /* Table styles */
