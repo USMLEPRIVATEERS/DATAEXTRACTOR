@@ -5521,6 +5521,49 @@
           return ""; // no population data found for this intervention
         }
 
+        // Get all available data for an intervention (population, mean, sd, events)
+        function getDataForIntervention(studyId, interventionName, baselineVars, outcomesVars, variableLabel) {
+          const combined = [
+            ...(baselineVars[studyId] || []),
+            ...(outcomesVars[studyId] || []),
+          ];
+
+          const result = {
+            population: "",
+            mean: "",
+            sd: "",
+            events: "",
+            total: ""
+          };
+
+          // Find population_size variable
+          for (let variable of combined) {
+            if (variable.type === "population_size" &&
+                variable.interventionName === interventionName) {
+              result.population = variable.value.population || "";
+            }
+          }
+
+          // Find matching continuous or dichotomous variable with same label
+          if (variableLabel) {
+            for (let variable of combined) {
+              if (variable.interventionName === interventionName &&
+                  variable.label === variableLabel) {
+                if (variable.type === "continuous") {
+                  result.mean = variable.value.mean || "";
+                  result.sd = variable.value.sd || "";
+                  result.total = variable.value.total || "";
+                } else if (variable.type === "dichotomous") {
+                  result.events = variable.value.events || "";
+                  result.total = variable.value.total || "";
+                }
+              }
+            }
+          }
+
+          return result;
+        }
+
         // New version of swapInterventionComparisonValues
         const swapInterventionComparisonValues = () => {
           // Make a shallow copy to avoid mutating state directly.
@@ -5678,12 +5721,53 @@
                 <input
                   type="text"
                   value={inputValues.interventionName}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    const newInterventionName = e.target.value;
+                    const currentStudyId = inputValues.selectedStudyId || studyIds[0];
+
+                    // Get data for this intervention
+                    const interventionData = getDataForIntervention(
+                      currentStudyId,
+                      newInterventionName,
+                      baselineVariables,
+                      outcomesVariables,
+                      inputValues.variableLabel
+                    );
+
+                    // Auto-fill values if they exist and current fields are empty
+                    const newVariableValue = { ...inputValues.variableValue };
+
+                    // Auto-fill population/total if empty
+                    if (interventionData.population && !inputValues.variableValue.population?.trim()) {
+                      newVariableValue.population = interventionData.population;
+                    }
+                    if (interventionData.total && !inputValues.variableValue.total?.trim()) {
+                      newVariableValue.total = interventionData.total;
+                    }
+
+                    // Auto-fill mean and SD for continuous variables if empty
+                    if (inputValues.variableType === "continuous") {
+                      if (interventionData.mean && !inputValues.variableValue.mean?.trim()) {
+                        newVariableValue.mean = interventionData.mean;
+                      }
+                      if (interventionData.sd && !inputValues.variableValue.sd?.trim()) {
+                        newVariableValue.sd = interventionData.sd;
+                      }
+                    }
+
+                    // Auto-fill events for dichotomous variables if empty
+                    if (inputValues.variableType === "dichotomous") {
+                      if (interventionData.events && !inputValues.variableValue.events?.trim()) {
+                        newVariableValue.events = interventionData.events;
+                      }
+                    }
+
                     setInputValues({
                       ...inputValues,
-                      interventionName: e.target.value,
-                    })
-                  }
+                      interventionName: newInterventionName,
+                      variableValue: newVariableValue,
+                    });
+                  }}
                   list="intervention-names"
                   className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="e.g., Placebo, Drug A, Control"
