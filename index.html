@@ -1812,24 +1812,19 @@
       // WelcomeScreen Component - Initial screen with only My Projects button
       function WelcomeScreen({ onManageProjects }) {
         return (
-          <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
-            <div className="w-full max-w-3xl mx-auto px-4 relative z-10">
-              {/* Enhanced gradient orbs */}
-              <div className="absolute top-1/4 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[60vw] h-[60vh] bg-gradient-to-br from-blue-500/20 via-purple-500/20 to-cyan-500/20 blur-3xl rounded-full opacity-20 pointer-events-none animate-pulse"></div>
-              <div className="absolute top-1/3 right-1/4 w-[40vw] h-[40vh] bg-gradient-to-tl from-green-500/15 to-blue-500/15 blur-3xl rounded-full opacity-15 pointer-events-none"></div>
-              <div className="pointer-events-none absolute inset-0 bg-noise-pattern opacity-5"></div>
-
+          <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-primary)' }}>
+            <div className="w-full max-w-3xl mx-auto px-4">
               {/* Main content container */}
               <div className="text-center py-12">
                 {/* Title */}
-                <h1 className="text-6xl md:text-7xl font-extrabold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-cyan-400 animate-gradient">
+                <h1 className="text-6xl md:text-7xl font-extrabold tracking-tight mb-6" style={{ color: 'var(--text-primary)' }}>
                   Data Extraction Tool
                 </h1>
 
                 {/* Subtitle */}
-                <p className="text-xl md:text-2xl text-gray-300 max-w-2xl mx-auto mb-14 leading-relaxed">
+                <p className="text-xl md:text-2xl max-w-2xl mx-auto mb-14 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                   Organize and manage your scientific data extraction projects
-                  <span className="block text-base text-gray-500 mt-2">with precision and efficiency</span>
+                  <span className="block text-base mt-2" style={{ color: 'var(--text-tertiary)' }}>with precision and efficiency</span>
                 </p>
               </div>
 
@@ -1837,70 +1832,37 @@
               <div className="flex justify-center mb-8">
                 <button
                   onClick={onManageProjects}
-                  className="group relative inline-flex items-center justify-center font-bold py-6 px-16 rounded-2xl text-white text-2xl transition-all duration-500 transform hover:scale-110 focus:outline-none focus:ring-4 focus:ring-blue-400/50 overflow-hidden shadow-2xl hover:shadow-blue-500/50"
+                  className="inline-flex items-center justify-center font-bold py-6 px-16 rounded-xl transition-all duration-300 transform hover:scale-105 focus:outline-none shadow-lg"
                   style={{
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
-                    backgroundSize: '200% 200%',
+                    backgroundColor: 'var(--bg-button-primary)',
+                    color: 'var(--text-on-button)',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.backgroundColor = 'var(--bg-button-primary-hover)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.backgroundColor = 'var(--bg-button-primary)';
                   }}
                 >
-                  {/* Animated gradient background */}
-                  <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-blue-600 via-purple-600 to-pink-500 opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ backgroundSize: '200% 200%', animation: 'gradientShift 3s ease infinite' }}></span>
-
-                  {/* Glow effect layers */}
-                  <span className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{
-                    boxShadow: '0 0 40px rgba(139, 92, 246, 0.6), 0 0 80px rgba(59, 130, 246, 0.4), inset 0 0 20px rgba(255, 255, 255, 0.1)',
-                  }}></span>
-
-                  {/* Shimmer effect */}
-                  <span className="absolute inset-0 w-full h-full">
-                    <span className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-12 translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000"></span>
-                  </span>
-
-                  {/* Particle effects */}
-                  <span className="absolute inset-0 overflow-hidden rounded-2xl">
-                    <span className="absolute w-2 h-2 bg-white rounded-full top-[20%] left-[10%] opacity-0 group-hover:opacity-100 group-hover:animate-ping"></span>
-                    <span className="absolute w-1 h-1 bg-blue-300 rounded-full top-[60%] left-[30%] opacity-0 group-hover:opacity-100 animate-pulse" style={{ animationDelay: '0.2s' }}></span>
-                    <span className="absolute w-2 h-2 bg-purple-300 rounded-full top-[40%] right-[20%] opacity-0 group-hover:opacity-100 group-hover:animate-ping" style={{ animationDelay: '0.3s' }}></span>
-                    <span className="absolute w-1 h-1 bg-pink-300 rounded-full bottom-[30%] right-[40%] opacity-0 group-hover:opacity-100 animate-pulse" style={{ animationDelay: '0.5s' }}></span>
-                  </span>
-
-                  {/* Beautiful briefcase icon with enhanced design */}
-                  <span className="relative mr-5 transform group-hover:scale-110 group-hover:rotate-6 transition-all duration-500" style={{ filter: 'drop-shadow(0 0 8px rgba(255, 255, 255, 0.5))' }}>
-                    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      {/* Handle */}
-                      <path d="M12 8h4a2 2 0 012 2v2h4v-2a2 2 0 012-2h4" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.9"/>
-
-                      {/* Main body with gradient */}
-                      <rect x="6" y="12" width="28" height="20" rx="3" stroke="white" strokeWidth="2.5" strokeLinejoin="round" fill="url(#briefcaseBodyGradient)" fillOpacity="0.3"/>
-
-                      {/* Top line separator */}
-                      <path d="M6 17h28" stroke="white" strokeWidth="2.5" strokeLinecap="round" opacity="0.8"/>
-
-                      {/* Lock/clasp detail */}
-                      <circle cx="20" cy="23" r="2.5" fill="white" opacity="0.9"/>
-                      <path d="M20 25.5v3" stroke="white" strokeWidth="2" strokeLinecap="round" opacity="0.9"/>
-
-                      {/* Corner details */}
-                      <circle cx="11" cy="27" r="1" fill="white" opacity="0.6"/>
-                      <circle cx="29" cy="27" r="1" fill="white" opacity="0.6"/>
-
-                      <defs>
-                        <linearGradient id="briefcaseBodyGradient" x1="6" y1="12" x2="34" y2="32" gradientUnits="userSpaceOnUse">
-                          <stop stopColor="#ffffff" stopOpacity="0.4"/>
-                          <stop offset="1" stopColor="#a78bfa" stopOpacity="0.2"/>
-                        </linearGradient>
-                      </defs>
+                  {/* Briefcase icon */}
+                  <span className="mr-4">
+                    <svg width="32" height="32" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 8h4a2 2 0 012 2v2h4v-2a2 2 0 012-2h4" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <rect x="6" y="12" width="28" height="20" rx="3" stroke="currentColor" strokeWidth="2.5" strokeLinejoin="round" fill="currentColor" fillOpacity="0.1"/>
+                      <path d="M6 17h28" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+                      <circle cx="20" cy="23" r="2.5" fill="currentColor"/>
+                      <path d="M20 25.5v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                     </svg>
                   </span>
 
-                  <span className="relative font-extrabold tracking-wider uppercase" style={{ letterSpacing: '0.1em', textShadow: '0 2px 10px rgba(0, 0, 0, 0.3), 0 0 20px rgba(255, 255, 255, 0.2)' }}>
+                  <span className="text-2xl font-extrabold tracking-wide uppercase">
                     My Projects
                   </span>
 
-                  {/* Arrow indicator with bounce */}
-                  <span className="relative ml-5 transform group-hover:translate-x-2 transition-all duration-500 group-hover:animate-bounce">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ filter: 'drop-shadow(0 0 4px rgba(255, 255, 255, 0.5))' }}>
-                      <path d="M9 5l7 7-7 7" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+                  {/* Arrow indicator */}
+                  <span className="ml-4">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M9 5l7 7-7 7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </span>
                 </button>
@@ -1908,13 +1870,16 @@
 
               {/* Acknowledgements section */}
               <div className="mt-20 text-center">
-                <div className="inline-block bg-gray-800/40 backdrop-blur-sm px-8 py-4 rounded-xl border border-gray-700/50">
-                  <p className="text-sm text-gray-400 leading-relaxed">
-                    <strong className="text-gray-300">Acknowledgements:</strong> This app was developed by
-                    <span className="text-gray-300"> Marcos Antônio Dias Vilela</span>
+                <div className="inline-block px-8 py-4 rounded-xl" style={{
+                  backgroundColor: 'var(--bg-tertiary)',
+                  border: '1px solid var(--border-primary)'
+                }}>
+                  <p className="text-sm leading-relaxed" style={{ color: 'var(--text-tertiary)' }}>
+                    <strong style={{ color: 'var(--text-secondary)' }}>Acknowledgements:</strong> This app was developed by
+                    <span style={{ color: 'var(--text-secondary)' }}> Marcos Antônio Dias Vilela</span>
                     <span className="block mt-1">
                       (ORCID:{" "}
-                      <a href="https://orcid.org/0000-0001-9303-504X" target="_blank" className="text-blue-400 hover:text-blue-300 transition-colors underline decoration-blue-400/30 hover:decoration-blue-300">
+                      <a href="https://orcid.org/0000-0001-9303-504X" target="_blank" className="transition-colors underline" style={{ color: 'var(--accent-color)' }}>
                         0000-0001-9303-504X
                       </a>
                       , PubMed: Vilela MAD) at FAMERP
@@ -1923,40 +1888,6 @@
                 </div>
               </div>
             </div>
-
-            <style jsx>{`
-              .bg-noise-pattern {
-                background-image: url('data:image/svg+xml,%3Csvg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"%3E%3Crect width="1" height="1" fill="%23222222"/%3E%3C/svg%3E');
-                background-size: 200px 200px;
-              }
-
-              @keyframes gradient {
-                0%, 100% {
-                  background-size: 200% 200%;
-                  background-position: 0% 50%;
-                }
-                50% {
-                  background-size: 200% 200%;
-                  background-position: 100% 50%;
-                }
-              }
-
-              .animate-gradient {
-                animation: gradient 8s ease infinite;
-              }
-
-              @keyframes gradientShift {
-                0% {
-                  background-position: 0% 50%;
-                }
-                50% {
-                  background-position: 100% 50%;
-                }
-                100% {
-                  background-position: 0% 50%;
-                }
-              }
-            `}</style>
           </div>
         );
       }
