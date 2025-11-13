@@ -34,6 +34,9 @@
         --bg-button-primary-hover: #2563eb;
         --bg-button-secondary: #6b7280;
         --bg-button-secondary-hover: #4b5563;
+        --bg-button-unselected: #e5e7eb;
+        --bg-button-unselected-hover: #d1d5db;
+        --text-button-unselected: #374151;
         --bg-input: #ffffff;
         --bg-table-row: #ffffff;
         --bg-table-row-hover: #f9fafb;
@@ -63,9 +66,7 @@
         --container-border: #e5e7eb;
         --container-shadow: rgba(0, 0, 0, 0.1);
 
-        /* Neon/Accent colors */
-        --neon-primary: #3b82f6;
-        --neon-secondary: #06b6d4;
+        /* Accent colors */
         --accent-color: #3b82f6;
 
         /* Special effects */
@@ -87,6 +88,9 @@
         --bg-button-primary-hover: #2563eb;
         --bg-button-secondary: #374151;
         --bg-button-secondary-hover: #4b5563;
+        --bg-button-unselected: #374151;
+        --bg-button-unselected-hover: #4b5563;
+        --text-button-unselected: #e0e0e0;
         --bg-input: #1e1e1e;
         --bg-table-row: #1a1a1a;
         --bg-table-row-hover: #242424;
@@ -116,9 +120,7 @@
         --container-border: #2e2e2e;
         --container-shadow: rgba(0, 0, 0, 0.7);
 
-        /* Neon/Accent colors */
-        --neon-primary: #32ff96;
-        --neon-secondary: #57f9ff;
+        /* Accent colors */
         --accent-color: #32ff96;
 
         /* Special effects */
@@ -151,8 +153,8 @@
 
       .theme-toggle:hover {
         transform: scale(1.1) rotate(15deg);
-        border-color: var(--neon-primary);
-        box-shadow: 0 0 20px var(--dropzone-shadow);
+        border-color: var(--accent-color);
+        box-shadow: 0 4px 8px var(--container-shadow);
       }
 
       .theme-toggle svg {
@@ -324,32 +326,6 @@
         margin: 0;
         font-weight: 700;
         color: var(--text-primary);
-        text-shadow: 0 0 6px rgba(255, 255, 255, 0.04);
-        display: inline-block; /* limit underline width to text only */
-        position: relative;
-        padding-bottom: 8px; /* spacing so the underline is right below */
-      }
-      /* NEON UNDERLINE DIRECTLY BELOW THE WORDS */
-      h1::after,
-      h2::after,
-      h3::after {
-        content: "";
-        position: absolute;
-        left: 0;
-        bottom: 0; /* underline sits right at the bottom of the text container */
-        width: 100%;
-        height: 3px;
-        background: linear-gradient(90deg, var(--neon-primary), var(--neon-secondary), var(--neon-primary));
-        border-radius: 2px;
-        animation: neonFlow 2.5s linear infinite;
-      }
-      @keyframes neonFlow {
-        0% {
-          background-position: 0%;
-        }
-        100% {
-          background-position: 200%;
-        }
       }
 
       /*****************************************
@@ -505,8 +481,8 @@
         left: 0;
         right: 0;
         bottom: 0;
-        background: linear-gradient(45deg, var(--neon-primary), var(--neon-secondary));
-        opacity: 0.08;
+        background: var(--accent-color);
+        opacity: 0.05;
       }
       tr:hover td {
         box-shadow: inset 0 0 6px var(--hover-shadow);
@@ -5580,21 +5556,41 @@
               <div className="flex space-x-4 mb-4 md:mb-0">
                 <button
                   onClick={() => setSelectedOption("baseline")}
-                  className={`font-semibold py-2 px-4 rounded-lg transition duration-300 ${
-                    selectedOption === "baseline"
-                      ? "bg-blue-600"
-                      : "bg-gray-700 hover:bg-gray-600"
-                  }`}
+                  className="font-semibold py-2 px-4 rounded-lg transition duration-300"
+                  style={{
+                    backgroundColor: selectedOption === "baseline" ? "var(--bg-button-primary)" : "var(--bg-button-unselected)",
+                    color: selectedOption === "baseline" ? "var(--text-on-button)" : "var(--text-button-unselected)"
+                  }}
+                  onMouseEnter={(e) => {
+                    if (selectedOption !== "baseline") {
+                      e.target.style.backgroundColor = "var(--bg-button-unselected-hover)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (selectedOption !== "baseline") {
+                      e.target.style.backgroundColor = "var(--bg-button-unselected)";
+                    }
+                  }}
                 >
                   Baseline
                 </button>
                 <button
                   onClick={() => setSelectedOption("outcomes")}
-                  className={`font-semibold py-2 px-4 rounded-lg transition duration-300 ${
-                    selectedOption === "outcomes"
-                      ? "bg-blue-600"
-                      : "bg-gray-700 hover:bg-gray-600"
-                  }`}
+                  className="font-semibold py-2 px-4 rounded-lg transition duration-300"
+                  style={{
+                    backgroundColor: selectedOption === "outcomes" ? "var(--bg-button-primary)" : "var(--bg-button-unselected)",
+                    color: selectedOption === "outcomes" ? "var(--text-on-button)" : "var(--text-button-unselected)"
+                  }}
+                  onMouseEnter={(e) => {
+                    if (selectedOption !== "outcomes") {
+                      e.target.style.backgroundColor = "var(--bg-button-unselected-hover)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (selectedOption !== "outcomes") {
+                      e.target.style.backgroundColor = "var(--bg-button-unselected)";
+                    }
+                  }}
                 >
                   Outcomes
                 </button>
@@ -10802,41 +10798,81 @@ const handleDownloadFolder = async () => {
             <div className="flex space-x-4">
               <button
                 onClick={() => setPreviewOption("baseline")}
-                className={`font-semibold py-2 px-4 rounded-lg transition duration-300 ${
-                  previewOption === "baseline"
-                    ? "bg-blue-600"
-                    : "bg-gray-700 hover:bg-gray-600"
-                }`}
+                className="font-semibold py-2 px-4 rounded-lg transition duration-300"
+                style={{
+                  backgroundColor: previewOption === "baseline" ? "var(--bg-button-primary)" : "var(--bg-button-unselected)",
+                  color: previewOption === "baseline" ? "var(--text-on-button)" : "var(--text-button-unselected)"
+                }}
+                onMouseEnter={(e) => {
+                  if (previewOption !== "baseline") {
+                    e.target.style.backgroundColor = "var(--bg-button-unselected-hover)";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (previewOption !== "baseline") {
+                    e.target.style.backgroundColor = "var(--bg-button-unselected)";
+                  }
+                }}
               >
                 Baseline Data
               </button>
               <button
                 onClick={() => setPreviewOption("outcomes")}
-                className={`font-semibold py-2 px-4 rounded-lg transition duration-300 ${
-                  previewOption === "outcomes"
-                    ? "bg-blue-600"
-                    : "bg-gray-700 hover:bg-gray-600"
-                }`}
+                className="font-semibold py-2 px-4 rounded-lg transition duration-300"
+                style={{
+                  backgroundColor: previewOption === "outcomes" ? "var(--bg-button-primary)" : "var(--bg-button-unselected)",
+                  color: previewOption === "outcomes" ? "var(--text-on-button)" : "var(--text-button-unselected)"
+                }}
+                onMouseEnter={(e) => {
+                  if (previewOption !== "outcomes") {
+                    e.target.style.backgroundColor = "var(--bg-button-unselected-hover)";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (previewOption !== "outcomes") {
+                    e.target.style.backgroundColor = "var(--bg-button-unselected)";
+                  }
+                }}
               >
                 Outcomes Data
               </button>
               <button
                 onClick={() => setPreviewOption("both")}
-                className={`font-semibold py-2 px-4 rounded-lg transition duration-300 ${
-                  previewOption === "both"
-                    ? "bg-blue-600"
-                    : "bg-gray-700 hover:bg-gray-600"
-                }`}
+                className="font-semibold py-2 px-4 rounded-lg transition duration-300"
+                style={{
+                  backgroundColor: previewOption === "both" ? "var(--bg-button-primary)" : "var(--bg-button-unselected)",
+                  color: previewOption === "both" ? "var(--text-on-button)" : "var(--text-button-unselected)"
+                }}
+                onMouseEnter={(e) => {
+                  if (previewOption !== "both") {
+                    e.target.style.backgroundColor = "var(--bg-button-unselected-hover)";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (previewOption !== "both") {
+                    e.target.style.backgroundColor = "var(--bg-button-unselected)";
+                  }
+                }}
               >
                 Both
               </button>
               <button
                 onClick={() => setPreviewOption("recurrent")}
-                className={`font-semibold py-2 px-4 rounded-lg transition duration-300 ${
-                  previewOption === "recurrent"
-                    ? "bg-blue-600"
-                    : "bg-gray-700 hover:bg-gray-600"
-                }`}
+                className="font-semibold py-2 px-4 rounded-lg transition duration-300"
+                style={{
+                  backgroundColor: previewOption === "recurrent" ? "var(--bg-button-primary)" : "var(--bg-button-unselected)",
+                  color: previewOption === "recurrent" ? "var(--text-on-button)" : "var(--text-button-unselected)"
+                }}
+                onMouseEnter={(e) => {
+                  if (previewOption !== "recurrent") {
+                    e.target.style.backgroundColor = "var(--bg-button-unselected-hover)";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (previewOption !== "recurrent") {
+                    e.target.style.backgroundColor = "var(--bg-button-unselected)";
+                  }
+                }}
               >
                 Recurrent
               </button>
