@@ -5528,9 +5528,9 @@
             return;
           }
 
-          // Validate intervention name for Network mode
-          if (groupType === 'network' && !picoInterventionName.trim()) {
-            alert('Please enter an intervention name for Network mode.');
+          // Validate intervention name for Network mode (only for outcomes, not baseline)
+          if (groupType === 'network' && selectedOption === 'outcomes' && !picoInterventionName.trim()) {
+            alert('Please enter an intervention name for Network mode outcomes.');
             return;
           }
 
@@ -5564,8 +5564,8 @@
                       armType: 'single'
                     };
 
-                    // Add interventionName for Network mode
-                    if (groupType === 'network') {
+                    // Add interventionName for Network mode (only for outcomes)
+                    if (groupType === 'network' && selectedOption === 'outcomes') {
                       newVar.interventionName = picoInterventionName.trim();
                     }
 
@@ -5598,8 +5598,8 @@
                       armType: 'single'
                     };
 
-                    // Add interventionName for Network mode
-                    if (groupType === 'network') {
+                    // Add interventionName for Network mode (only for outcomes)
+                    if (groupType === 'network' && selectedOption === 'outcomes') {
                       newVar.interventionName = picoInterventionName.trim();
                     }
 
@@ -7417,12 +7417,12 @@
                             />
                           </div>
 
-                          {/* Intervention Name for Network Mode */}
-                          {groupType === 'network' && (
+                          {/* Intervention Name for Network Mode (only for outcomes) */}
+                          {groupType === 'network' && selectedOption === 'outcomes' && (
                             <div className="mb-4">
                               <label className="block font-semibold mb-2 text-gray-300">
                                 Intervention Name <span className="text-red-400">*</span>
-                                <span className="text-sm text-gray-400 ml-2">(Required for Network mode)</span>
+                                <span className="text-sm text-gray-400 ml-2">(Required for Network mode outcomes)</span>
                               </label>
                               <input
                                 type="text"
