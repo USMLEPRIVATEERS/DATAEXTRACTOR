@@ -8633,8 +8633,28 @@ const getTextValue = (studyId, label, variablesToUse) => {
             if (isNetwork) {
               // Network mode: group by intervention
               variables.forEach(variable => {
-                if (!variable.interventionName) return;
+                // Study-level variables (baseline/recommended) - show without intervention tag
+                if (!variable.interventionName) {
+                  let valueStr = "";
+                  if (variable.isSinglePlaceholder) {
+                    valueStr = variable.value || getMissingValue();
+                  } else if (variable.type === "dichotomous") {
+                    valueStr = `${variable.value.events || getMissingValue()}/${variable.value.total || getMissingValue()}`;
+                  } else if (variable.type === "continuous") {
+                    const mean = variable.value.mean || getMissingValue();
+                    const sd = variable.value.sd || getMissingValue();
+                    const total = variable.value.total || getMissingValue();
+                    valueStr = `${mean}±${sd}, N=${total}`;
+                  } else if (variable.type === "text") {
+                    valueStr = variable.value || getMissingValue();
+                  } else if (variable.type === "population_size") {
+                    valueStr = `N=${variable.value.population || getMissingValue()}`;
+                  }
+                  parts.push(valueStr);
+                  return;
+                }
 
+                // Intervention-specific variables - show with intervention tag
                 let valueStr = "";
                 if (variable.type === "dichotomous") {
                   valueStr = `${variable.value.events || getMissingValue()}/${variable.value.total || getMissingValue()}`;
