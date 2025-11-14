@@ -742,6 +742,54 @@
       th {
         border-color: var(--border-table) !important;
       }
+
+      /* PICO Table Highlight Colors - Override global td styles */
+      .bg-green-900\/40 {
+        background-color: rgba(20, 83, 45, 0.4) !important;
+      }
+
+      .bg-red-900\/40 {
+        background-color: rgba(127, 29, 29, 0.4) !important;
+      }
+
+      .border-green-500 {
+        border-color: #10b981 !important;
+      }
+
+      .border-red-500 {
+        border-color: #ef4444 !important;
+      }
+
+      /* Dark mode adjustments for PICO table highlights */
+      body.dark-mode .bg-green-900\/40 {
+        background-color: rgba(20, 83, 45, 0.5) !important;
+      }
+
+      body.dark-mode .bg-red-900\/40 {
+        background-color: rgba(127, 29, 29, 0.5) !important;
+      }
+
+      /* Prevent hover effects from overriding PICO highlights */
+      td.bg-green-900\/40:hover,
+      td.bg-red-900\/40:hover {
+        background-color: inherit !important;
+      }
+
+      tr:hover td.bg-green-900\/40 {
+        background-color: rgba(20, 83, 45, 0.4) !important;
+      }
+
+      tr:hover td.bg-red-900\/40 {
+        background-color: rgba(127, 29, 29, 0.4) !important;
+      }
+
+      body.dark-mode tr:hover td.bg-green-900\/40 {
+        background-color: rgba(20, 83, 45, 0.5) !important;
+      }
+
+      body.dark-mode tr:hover td.bg-red-900\/40 {
+        background-color: rgba(127, 29, 29, 0.5) !important;
+      }
     </style>
   </head>
   <body>
@@ -4251,6 +4299,7 @@
         const [picoShowPreview, setPicoShowPreview] = useState(false);
         const [picoVariableMappings, setPicoVariableMappings] = useState({});
         const [picoStudyMappings, setPicoStudyMappings] = useState({});
+        const [picoInterventionName, setPicoInterventionName] = useState("");
 
         const variables =
           selectedOption === "baseline" ? baselineVariables : outcomesVariables;
@@ -5396,6 +5445,12 @@
             return;
           }
 
+          // Validate intervention name for Network mode
+          if (groupType === 'network' && !picoInterventionName.trim()) {
+            alert('Please enter an intervention name for Network mode.');
+            return;
+          }
+
           // Process and create variables
           try {
             const newVars = {};
@@ -5417,14 +5472,21 @@
                   const cellValue = values[idx] || '';
 
                   if (cellValue.trim()) {
-                    newVars[studyId].push({
+                    const newVar = {
                       id: Date.now() + Math.random(),
                       label: mappedLabel,
                       type: 'text',
                       value: cellValue,
                       isSinglePlaceholder: true,
                       armType: 'single'
-                    });
+                    };
+
+                    // Add interventionName for Network mode
+                    if (groupType === 'network') {
+                      newVar.interventionName = picoInterventionName.trim();
+                    }
+
+                    newVars[studyId].push(newVar);
                   }
                 });
               });
@@ -5444,14 +5506,21 @@
                   }
 
                   if (cellValue.trim()) {
-                    newVars[studyId].push({
+                    const newVar = {
                       id: Date.now() + Math.random(),
                       label: variableLabel,
                       type: 'text',
                       value: cellValue,
                       isSinglePlaceholder: true,
                       armType: 'single'
-                    });
+                    };
+
+                    // Add interventionName for Network mode
+                    if (groupType === 'network') {
+                      newVar.interventionName = picoInterventionName.trim();
+                    }
+
+                    newVars[studyId].push(newVar);
                   }
                 });
               });
@@ -5491,6 +5560,7 @@
             setPicoTableData([]);
             setPicoVariableMappings({});
             setPicoStudyMappings({});
+            setPicoInterventionName('');
 
             alert('PICO variables added successfully!');
           } catch (error) {
@@ -7263,6 +7333,23 @@
                               className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-100 font-mono text-sm"
                             />
                           </div>
+
+                          {/* Intervention Name for Network Mode */}
+                          {groupType === 'network' && (
+                            <div className="mb-4">
+                              <label className="block font-semibold mb-2 text-gray-300">
+                                Intervention Name <span className="text-red-400">*</span>
+                                <span className="text-sm text-gray-400 ml-2">(Required for Network mode)</span>
+                              </label>
+                              <input
+                                type="text"
+                                value={picoInterventionName}
+                                onChange={(e) => setPicoInterventionName(e.target.value)}
+                                placeholder="Enter intervention name (e.g., Drug A, Placebo, etc.)"
+                                className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-100"
+                              />
+                            </div>
+                          )}
 
                           {/* Process Button */}
                           <button
