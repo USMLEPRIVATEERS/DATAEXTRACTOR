@@ -9135,6 +9135,29 @@ const getTextValue = (studyId, label, variablesToUse) => {
                   variables: varData
                 });
               });
+
+              // If study has ONLY baseline variables (no intervention-specific variables),
+              // still create one row to show the study-level data
+              if (Object.keys(interventionGroups).length === 0 && Object.keys(baselineVars).length > 0) {
+                const varData = {};
+
+                Object.keys(baselineVars).forEach((label) => {
+                  const variable = baselineVars[label];
+                  if (variable.isSinglePlaceholder) {
+                    varData[label] = variable.value || getMissingValue();
+                  } else if (variable.type === "text") {
+                    varData[label] = variable.value.text || variable.value || getMissingValue();
+                  } else if (variable.type === "population_size") {
+                    varData[`${label}_Population`] = variable.value.population || getMissingValue();
+                  }
+                });
+
+                dataRows.push({
+                  studyId,
+                  intervention: "(Study-level data)",
+                  variables: varData
+                });
+              }
             });
           }
           // INTERVENTION & INTERVENTION_COMPARISON MODES: Keep original logic (one row per study)
