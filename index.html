@@ -964,9 +964,12 @@
           onDataChange(newData);
         };
 
-        const addRow = () => {
+        const addRow = (afterRowIdx) => {
           const newRow = new Array(data[0].length).fill('');
-          onDataChange([...data, newRow]);
+          const newData = [...data];
+          // Insert after the clicked row
+          newData.splice(afterRowIdx + 1, 0, newRow);
+          onDataChange(newData);
         };
 
         const removeRow = (rowIdx) => {
@@ -977,8 +980,14 @@
           onDataChange(data.filter((_, idx) => idx !== rowIdx));
         };
 
-        const addColumn = () => {
-          onDataChange(data.map(row => [...row, '']));
+        const addColumn = (afterColIdx) => {
+          const newData = data.map(row => {
+            const newRow = [...row];
+            // Insert empty cell after the clicked column
+            newRow.splice(afterColIdx + 1, 0, '');
+            return newRow;
+          });
+          onDataChange(newData);
         };
 
         const removeColumn = (colIdx) => {
@@ -1104,19 +1113,20 @@
                             />
                           ) : (
                             <div
-                              className={`min-h-[1.5rem] ${getCellHighlight(rowIdx, colIdx, cell).includes('red') ? 'cursor-pointer' : ''}`}
+                              className="min-h-[1.5rem] cursor-text hover:bg-gray-700/30 transition-colors rounded px-1"
                               onDoubleClick={() => setEditingCell({ rowIdx, colIdx })}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleCellClick(rowIdx, colIdx, cell);
                               }}
+                              title="Double-click to edit"
                             >
                               {variableMappings[cell] || studyMappings[cell] ? (
                                 <span>
                                   <s className="text-gray-500">{cell}</s> → {variableMappings[cell] || studyMappings[cell]}
                                 </span>
                               ) : (
-                                cell
+                                cell || <span className="text-gray-500 italic">empty</span>
                               )}
                             </div>
                           )}
@@ -1136,9 +1146,9 @@
                                 −
                               </button>
                               <button
-                                onClick={addRow}
+                                onClick={() => addRow(rowIdx)}
                                 className="px-2 py-0.5 bg-blue-600/90 hover:bg-blue-700 rounded text-xs text-white shadow-lg backdrop-blur-sm transition-all duration-200"
-                                title="Add row"
+                                title="Add row below"
                               >
                                 +
                               </button>
@@ -1160,9 +1170,9 @@
                                 −
                               </button>
                               <button
-                                onClick={addColumn}
+                                onClick={() => addColumn(colIdx)}
                                 className="px-2 py-0.5 bg-blue-600/90 hover:bg-blue-700 rounded text-xs text-white shadow-lg backdrop-blur-sm transition-all duration-200"
-                                title="Add column"
+                                title="Add column to the right"
                               >
                                 +
                               </button>
