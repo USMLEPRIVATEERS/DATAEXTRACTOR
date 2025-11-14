@@ -9138,17 +9138,19 @@ const getTextValue = (studyId, label, variablesToUse) => {
               Object.keys(interventionGroups).forEach((intName) => {
                 const varData = {};
 
-                // Add baseline variables to this row
-                Object.keys(baselineVars).forEach((label) => {
-                  const variable = baselineVars[label];
-                  if (variable.isSinglePlaceholder) {
-                    varData[label] = variable.value || getMissingValue();
-                  } else if (variable.type === "text") {
-                    varData[label] = variable.value.text || variable.value || getMissingValue();
-                  } else if (variable.type === "population_size") {
-                    varData[`${label}_Population`] = variable.value.population || getMissingValue();
-                  }
-                });
+                // Add baseline variables (without interventionName) ONLY to the 'baseline' intervention row
+                if (intName === 'baseline') {
+                  Object.keys(baselineVars).forEach((label) => {
+                    const variable = baselineVars[label];
+                    if (variable.isSinglePlaceholder) {
+                      varData[label] = variable.value || getMissingValue();
+                    } else if (variable.type === "text") {
+                      varData[label] = variable.value.text || variable.value || getMissingValue();
+                    } else if (variable.type === "population_size") {
+                      varData[`${label}_Population`] = variable.value.population || getMissingValue();
+                    }
+                  });
+                }
 
                 // Add intervention-specific variables
                 Object.keys(interventionGroups[intName]).forEach((label) => {
@@ -9179,9 +9181,9 @@ const getTextValue = (studyId, label, variablesToUse) => {
                 });
               });
 
-              // If study has ONLY baseline variables (no intervention-specific variables),
-              // still create one row to show the study-level data
-              if (Object.keys(interventionGroups).length === 0 && Object.keys(baselineVars).length > 0) {
+              // If there are baseline variables (without interventionName) but no 'baseline' intervention,
+              // create a 'baseline' row for them
+              if (Object.keys(baselineVars).length > 0 && !interventionGroups['baseline']) {
                 const varData = {};
 
                 Object.keys(baselineVars).forEach((label) => {
@@ -9197,7 +9199,7 @@ const getTextValue = (studyId, label, variablesToUse) => {
 
                 dataRows.push({
                   studyId,
-                  intervention: "(Study-level data)",
+                  intervention: Object.keys(interventionGroups).length === 0 ? "(Study-level data)" : "baseline",
                   variables: varData
                 });
               }
