@@ -5564,9 +5564,13 @@
                       armType: 'single'
                     };
 
-                    // Add interventionName for Network mode (only for outcomes)
-                    if (groupType === 'network' && selectedOption === 'outcomes') {
-                      newVar.interventionName = picoInterventionName.trim();
+                    // Add interventionName for Network mode
+                    if (groupType === 'network') {
+                      if (selectedOption === 'baseline') {
+                        newVar.interventionName = 'baseline';
+                      } else if (selectedOption === 'outcomes') {
+                        newVar.interventionName = picoInterventionName.trim();
+                      }
                     }
 
                     newVars[studyId].push(newVar);
@@ -5598,9 +5602,13 @@
                       armType: 'single'
                     };
 
-                    // Add interventionName for Network mode (only for outcomes)
-                    if (groupType === 'network' && selectedOption === 'outcomes') {
-                      newVar.interventionName = picoInterventionName.trim();
+                    // Add interventionName for Network mode
+                    if (groupType === 'network') {
+                      if (selectedOption === 'baseline') {
+                        newVar.interventionName = 'baseline';
+                      } else if (selectedOption === 'outcomes') {
+                        newVar.interventionName = picoInterventionName.trim();
+                      }
                     }
 
                     newVars[studyId].push(newVar);
