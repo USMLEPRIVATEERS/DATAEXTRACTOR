@@ -8937,12 +8937,17 @@ const getTextValue = (studyId, label, variablesToUse) => {
                   types: new Set(),
                   armTypes: new Set(),
                   subgroups: new Set(),
+                  hasInterventionName: false,
                 };
               }
               variableDefinitions[variable.label].types.add(variable.type);
               variableDefinitions[variable.label].armTypes.add(
                 variable.armType
               );
+              // Track if any instance of this variable has interventionName
+              if (variable.interventionName) {
+                variableDefinitions[variable.label].hasInterventionName = true;
+              }
             });
 
             labelsInStudy.forEach((label) => {
@@ -8981,7 +8986,13 @@ const getTextValue = (studyId, label, variablesToUse) => {
             const definition = variableDefinitions[label];
             const types = Array.from(definition.types);
             const armTypes = Array.from(definition.armTypes);
+            const hasInterventionName = definition.hasInterventionName;
             const subgroups = new Set();
+
+            // In Network mode, add "Intervention" column first if this variable has interventionName
+            if (groupType === "network" && hasInterventionName) {
+              subgroups.add("Intervention");
+            }
 
             types.forEach((type) => {
               if (type === "dichotomous") {
@@ -8999,7 +9010,7 @@ const getTextValue = (studyId, label, variablesToUse) => {
                     subgroups.add("Total");
                   }
                 } else if (groupType === "network") {
-                  // Network mode: events + total (Intervention is a data column, not a subgroup)
+                  // Network mode: events + total (with Intervention column added above if needed)
                   subgroups.add("Events");
                   subgroups.add("Total");
                 } else {
@@ -9025,7 +9036,7 @@ const getTextValue = (studyId, label, variablesToUse) => {
                     subgroups.add("Total");
                   }
                 } else if (groupType === "network") {
-                  // Network mode: mean / sd / total (Intervention is a data column, not a subgroup)
+                  // Network mode: mean / sd / total (with Intervention column added above if needed)
                   subgroups.add("Mean");
                   subgroups.add("SD");
                   subgroups.add("Total");
@@ -9051,7 +9062,7 @@ const getTextValue = (studyId, label, variablesToUse) => {
                       subgroups.add("Text Value");
                     }
                   } else if (groupType === "network") {
-                    // Network mode: text value (Intervention is a data column, not a subgroup)
+                    // Network mode: text value (with Intervention column added above if needed)
                     subgroups.add("");
                   } else {
                     // single-arm only => single column => label
@@ -9069,7 +9080,7 @@ const getTextValue = (studyId, label, variablesToUse) => {
                     subgroups.add("Population");
                   }
                 } else if (groupType === "network") {
-                  // Network mode: population (Intervention is a data column, not a subgroup)
+                  // Network mode: population (with Intervention column added above if needed)
                   subgroups.add("Population");
                 } else {
                   subgroups.add("Population");
@@ -9136,15 +9147,19 @@ const getTextValue = (studyId, label, variablesToUse) => {
                   const variable = interventionGroups[intName][label];
 
                   if (variable.type === "dichotomous") {
+                    varData[`${label}_Intervention`] = intName;
                     varData[`${label}_Events`] = variable.value.events || getMissingValue();
                     varData[`${label}_Total`] = variable.value.total || getMissingValue();
                   } else if (variable.type === "continuous") {
+                    varData[`${label}_Intervention`] = intName;
                     varData[`${label}_Mean`] = variable.value.mean || getMissingValue();
                     varData[`${label}_SD`] = variable.value.sd || getMissingValue();
                     varData[`${label}_Total`] = variable.value.total || getMissingValue();
                   } else if (variable.type === "text") {
+                    varData[`${label}_Intervention`] = intName;
                     varData[label] = variable.value.text || variable.value || getMissingValue();
                   } else if (variable.type === "population_size") {
+                    varData[`${label}_Intervention`] = intName;
                     varData[`${label}_Population`] = variable.value.population || getMissingValue();
                   }
                 });
