@@ -9081,15 +9081,17 @@ const getTextValue = (studyId, label, variablesToUse) => {
                 const label = variable.label;
                 if (!filteredVariableLabels.includes(label)) return;
 
-                // Single placeholder or variables without intervention name
-                if (variable.isSinglePlaceholder || !variable.interventionName) {
-                  baselineVars[label] = variable;
-                } else {
+                // If variable has interventionName, it goes to intervention group
+                // (even if it's a single placeholder, like from PICO import)
+                if (variable.interventionName) {
                   const intName = variable.interventionName;
                   if (!interventionGroups[intName]) {
                     interventionGroups[intName] = {};
                   }
                   interventionGroups[intName][label] = variable;
+                } else {
+                  // Variables without intervention name go to baseline
+                  baselineVars[label] = variable;
                 }
               });
 
