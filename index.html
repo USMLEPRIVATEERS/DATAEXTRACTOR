@@ -5609,8 +5609,9 @@
               });
             }
 
-            // Merge with existing baseline variables
-            const updated = { ...baselineVariables };
+            // Merge with existing baseline or outcomes variables based on selectedOption
+            const existingVars = selectedOption === 'baseline' ? baselineVariables : outcomesVariables;
+            const updated = { ...existingVars };
             Object.keys(newVars).forEach(studyId => {
               if (!updated[studyId]) {
                 updated[studyId] = [];
@@ -5627,7 +5628,12 @@
               });
             });
 
-            setBaselineVariables(updated);
+            // Update the correct state based on selectedOption
+            if (selectedOption === 'baseline') {
+              setBaselineVariables(updated);
+            } else {
+              setOutcomesVariables(updated);
+            }
 
             // Add variable labels to suggestions
             const allLabels = new Set(allVariableSuggestions);
