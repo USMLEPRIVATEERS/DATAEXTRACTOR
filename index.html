@@ -1402,6 +1402,15 @@
             return;
           }
 
+          // Check if a project is open
+          if (!currentProject) {
+            setChatMessages(prev => [...prev, {
+              role: 'assistant',
+              content: '⚠️ Nenhum projeto aberto!\n\nPara usar o chatbot:\n1. Clique em "My Projects" no topo\n2. Abra um projeto existente ou crie um novo\n3. Volte aqui e cole seus dados\n\nOs dados serão adicionados ao projeto aberto.'
+            }]);
+            return;
+          }
+
           if (!userMessage.trim()) return;
 
           // Add user message to chat
@@ -1413,6 +1422,8 @@
           try {
             // Prepare context with current project data
             const contextData = {
+              projectName: currentProject.name,
+              projectId: currentProject.id,
               groupType,
               studyIds,
               baselineVariables,
@@ -1425,11 +1436,15 @@
             // Create comprehensive prompt for Claude
             const systemPrompt = `Você é um assistente especializado em extrair e organizar dados de estudos científicos. Seu trabalho é pegar o texto fornecido pelo usuário e transformá-lo em dados estruturados seguindo EXATAMENTE o formato JSON especificado.
 
+IMPORTANTE: Você está trabalhando no projeto "${currentProject.name}" (ID: ${currentProject.id})
+
 CONTEXTO DO PROJETO ATUAL:
+- Nome do projeto: ${currentProject.name}
 - Tipo de grupo: ${groupType}
 - Nomes dos grupos: Intervenção="${groupNames.interventionName}", Comparação="${groupNames.comparisonName}"
-- Estudos existentes: ${studyIds.length > 0 ? studyIds.join(', ') : 'Nenhum ainda'}
+- Estudos já existentes: ${studyIds.length > 0 ? studyIds.join(', ') : 'Nenhum ainda'}
 - Intervenções usadas (modo network): ${usedInterventions.length > 0 ? usedInterventions.join(', ') : 'N/A'}
+- Total de estudos: ${studyIds.length}
 
 FORMATO DOS DADOS:
 Você DEVE retornar APENAS um objeto JSON válido (sem texto adicional antes ou depois) com a seguinte estrutura:
@@ -1668,10 +1683,12 @@ Agora, extraia os dados do texto do usuário:`;
               newMessages[newMessages.length - 1] = {
                 role: 'assistant',
                 content: `✅ Dados processados com sucesso!\n\n` +
+                  `📁 Projeto: ${currentProject.name}\n` +
                   `📊 ${addedCount} variáveis adicionadas\n` +
                   `📚 ${extractedData.studies.length} estudo(s) processado(s)\n` +
                   (errorCount > 0 ? `\n⚠️ ${errorCount} erro(s):\n${errors.join('\n')}` : '') +
-                  `\n\nOs dados foram inseridos no projeto atual. Você pode verificá-los na tela de entrada de variáveis.`
+                  `\n\n💾 Os dados foram salvos no projeto "${currentProject.name}".\n` +
+                  `Você pode verificá-los na tela de entrada de variáveis.`
               };
               return newMessages;
             });
@@ -2496,7 +2513,11 @@ Agora, extraia os dados do texto do usuário:`;
                     </svg>
                     <div>
                       <h3 className="font-bold text-sm">Claude AI</h3>
-                      <p className="text-xs opacity-90">Assistente de Dados</p>
+                      {currentProject ? (
+                        <p className="text-xs opacity-90">📁 {currentProject.name}</p>
+                      ) : (
+                        <p className="text-xs opacity-90">⚠️ Nenhum projeto aberto</p>
+                      )}
                     </div>
                   </div>
                   <div className="flex gap-2">
@@ -2531,11 +2552,40 @@ Agora, extraia os dados do texto do usuário:`;
                         Cole qualquer texto com dados de estudos e eu vou organizar automaticamente no formato correto para você!
                       </p>
 
+                      {currentProject && (
+                        <div className="bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded-lg p-3 mt-4 mx-2">
+                          <p className="text-xs text-green-800 dark:text-green-200 font-semibold mb-1">
+                            ✅ Projeto aberto:
+                          </p>
+                          <p className="text-sm text-green-700 dark:text-green-300 font-bold">
+                            {currentProject.name}
+                          </p>
+                          <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                            Tipo: {groupType === 'intervention' ? 'Intervenção' : groupType === 'intervention_comparison' ? 'Intervenção vs Comparação' : 'Network Meta-analysis'}
+                          </p>
+                          <p className="text-xs text-green-600 dark:text-green-400">
+                            Estudos: {studyIds.length}
+                          </p>
+                        </div>
+                      )}
+
+                      {!currentProject && (
+                        <div className="bg-orange-100 dark:bg-orange-900/30 border border-orange-300 dark:border-orange-700 rounded-lg p-3 mt-4 mx-2">
+                          <p className="text-xs text-orange-800 dark:text-orange-200 font-semibold mb-1">
+                            ⚠️ Nenhum projeto aberto
+                          </p>
+                          <p className="text-xs text-orange-700 dark:text-orange-300">
+                            Abra ou crie um projeto em "My Projects" para usar o chatbot.
+                          </p>
+                        </div>
+                      )}
+
                       <div className="bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 rounded-lg p-3 mt-4 mx-2 text-left">
                         <p className="text-xs text-blue-800 dark:text-blue-200 font-semibold mb-2">
                           🚀 Como usar:
                         </p>
                         <ol className="text-xs text-blue-700 dark:text-blue-300 space-y-1 ml-4 list-decimal">
+                          <li>Abra um projeto (se ainda não abriu)</li>
                           <li>Configure sua API key (clique em ⚙️)</li>
                           <li>Cole qualquer texto com dados de estudos</li>
                           <li>Vou organizar tudo automaticamente!</li>
