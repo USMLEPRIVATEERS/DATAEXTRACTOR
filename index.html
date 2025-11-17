@@ -1433,7 +1433,98 @@
               currentStudyCount: studyIds.length
             };
 
-            // Create comprehensive prompt for Claude
+            // Create comprehensive prompt for Claude based on project mode
+            let modeInstructions = '';
+            let exampleData = '';
+
+            if (groupType === 'intervention') {
+              modeInstructions = `
+MODO: INTERVENTION (Single Arm - Apenas 1 grupo/braço)
+- Use "armType": "single" para TODAS as variáveis
+- NÃO use campos como "interventionEvents/comparisonEvents"
+- Para dichotomous: use apenas "events" e "total"
+- Para continuous: use apenas "mean" e "sd"
+- NÃO use o campo "interventionName"`;
+
+              exampleData = `
+EXEMPLO PARA MODO INTERVENTION:
+{
+  "label": "Mortalidade",
+  "type": "dichotomous",
+  "value": {
+    "events": "15",
+    "total": "100"
+  },
+  "armType": "single"
+}`;
+            } else if (groupType === 'intervention_comparison') {
+              modeInstructions = `
+MODO: INTERVENTION & COMPARISON (Double Arm - 2 grupos/braços)
+- Use "armType": "double" para TODAS as variáveis
+- Para dichotomous: use "interventionEvents", "interventionTotal", "comparisonEvents", "comparisonTotal"
+- Para continuous: use "interventionMean", "interventionSd", "comparisonMean", "comparisonSd"
+- NÃO use o campo "interventionName"
+- SEMPRE inclua dados dos dois braços (intervention e comparison)`;
+
+              exampleData = `
+EXEMPLO PARA MODO INTERVENTION & COMPARISON:
+{
+  "label": "Mortalidade",
+  "type": "dichotomous",
+  "value": {
+    "interventionEvents": "15",
+    "interventionTotal": "100",
+    "comparisonEvents": "25",
+    "comparisonTotal": "100"
+  },
+  "armType": "double"
+}`;
+            } else if (groupType === 'network') {
+              modeInstructions = `
+MODO: NETWORK META-ANALYSIS (Múltiplas intervenções)
+- Use "armType": "single" para cada intervenção separadamente
+- CADA INTERVENÇÃO deve ser uma variável SEPARADA
+- OBRIGATÓRIO: Sempre inclua o campo "interventionName" com o nome da intervenção
+- Para dichotomous: use "events" e "total" para cada intervenção
+- Para continuous: use "mean" e "sd" para cada intervenção
+- Se um estudo tem 3 intervenções (A, B, C), crie 3 variáveis separadas, uma para cada`;
+
+              exampleData = `
+EXEMPLO PARA MODO NETWORK (estudo com 3 intervenções: DrugA, DrugB, Placebo):
+[
+  {
+    "label": "Mortalidade",
+    "type": "dichotomous",
+    "value": {
+      "events": "10",
+      "total": "100"
+    },
+    "armType": "single",
+    "interventionName": "DrugA"
+  },
+  {
+    "label": "Mortalidade",
+    "type": "dichotomous",
+    "value": {
+      "events": "15",
+      "total": "100"
+    },
+    "armType": "single",
+    "interventionName": "DrugB"
+  },
+  {
+    "label": "Mortalidade",
+    "type": "dichotomous",
+    "value": {
+      "events": "25",
+      "total": "100"
+    },
+    "armType": "single",
+    "interventionName": "Placebo"
+  }
+]`;
+            }
+
             const systemPrompt = `Você é um assistente especializado em extrair e organizar dados de estudos científicos. Seu trabalho é pegar o texto fornecido pelo usuário e transformá-lo em dados estruturados seguindo EXATAMENTE o formato JSON especificado.
 
 IMPORTANTE: Você está trabalhando no projeto "${currentProject.name}" (ID: ${currentProject.id})
@@ -1446,8 +1537,12 @@ CONTEXTO DO PROJETO ATUAL:
 - Intervenções usadas (modo network): ${usedInterventions.length > 0 ? usedInterventions.join(', ') : 'N/A'}
 - Total de estudos: ${studyIds.length}
 
+${modeInstructions}
+
+${exampleData}
+
 FORMATO DOS DADOS:
-Você DEVE retornar APENAS um objeto JSON válido (sem texto adicional antes ou depois) com a seguinte estrutura:
+Você DEVE retornar APENAS um objeto JSON válido (sem texto adicional antes ou depois) com esta estrutura:
 
 {
   "studies": [
@@ -1457,31 +1552,8 @@ Você DEVE retornar APENAS um objeto JSON válido (sem texto adicional antes ou 
         {
           "label": "Nome da variável",
           "type": "dichotomous|continuous|text|population_size",
-          "value": {
-            // Para dichotomous em intervention mode:
-            "events": "10",
-            "total": "100"
-            // Para dichotomous em intervention_comparison mode:
-            "interventionEvents": "10",
-            "interventionTotal": "50",
-            "comparisonEvents": "5",
-            "comparisonTotal": "50"
-            // Para continuous:
-            "mean": "25.5",
-            "sd": "3.2"
-            // ou para intervention_comparison:
-            "interventionMean": "25.5",
-            "interventionSd": "3.2",
-            "comparisonMean": "20.1",
-            "comparisonSd": "2.8"
-            // Para text:
-            "text": "Descrição textual"
-            // Para population_size:
-            "population": "100"
-          },
-          "armType": "single|double",
-          "isSinglePlaceholder": true|false,
-          "interventionName": "nome" // apenas para network mode
+          "value": { /* veja os exemplos acima */ },
+          "armType": "single|double"${groupType === 'network' ? ',\n          "interventionName": "nome_da_intervencao" // OBRIGATÓRIO para network mode' : ''}
         }
       ],
       "outcomesVariables": [
@@ -1491,15 +1563,16 @@ Você DEVE retornar APENAS um objeto JSON válido (sem texto adicional antes ou 
   ]
 }
 
-REGRAS IMPORTANTES:
+REGRAS CRÍTICAS:
 1. Retorne APENAS o JSON, sem explicações antes ou depois
-2. Use "armType": "single" para dados de um único grupo e "double" para dois grupos
-3. Para groupType="${groupType}", ajuste os campos do value apropriadamente
-4. Se não encontrar dados suficientes, retorne um array vazio
-5. Valide que todos os campos obrigatórios estejam presentes
-6. Números devem ser strings (ex: "10" não 10)
+2. SIGA EXATAMENTE as instruções do modo "${groupType}" acima
+3. Para population_size: sempre use "armType": "single" e "value": {"population": "número"}
+4. Para text: sempre use "armType": "single" e "value": {"text": "texto"}
+5. Números devem ser strings (ex: "10" não 10)
+6. Se não encontrar dados suficientes, retorne um array vazio
+7. NUNCA misture formatos de modos diferentes
 
-Agora, extraia os dados do texto do usuário:`;
+Agora, extraia os dados do texto do usuário seguindo EXATAMENTE o modo ${groupType}:`;
 
             // Call Claude API using CORS proxy for browser compatibility
             // This allows the app to work 100% in the browser without a local server
@@ -1688,10 +1761,17 @@ Agora, extraia os dados do texto do usuário:`;
                   `📚 ${extractedData.studies.length} estudo(s) processado(s)\n` +
                   (errorCount > 0 ? `\n⚠️ ${errorCount} erro(s):\n${errors.join('\n')}` : '') +
                   `\n\n💾 Os dados foram salvos no projeto "${currentProject.name}".\n` +
-                  `Você pode verificá-los na tela de entrada de variáveis.`
+                  `🎯 Mudando automaticamente para a tela de variáveis...`
               };
               return newMessages;
             });
+
+            // Automatically switch to variable input screen to show the new data
+            // Small delay to let user read the success message
+            setTimeout(() => {
+              setCurrentScreen('variableInput');
+              setIsChatOpen(false); // Close chat to show the variables
+            }, 1500);
 
           } catch (error) {
             console.error('Error calling Claude:', error);
@@ -2543,7 +2623,7 @@ Agora, extraia os dados do texto do usuário:`;
                 </div>
 
                 {/* Chat Messages */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50 dark:bg-gray-800">
+                <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50 dark:bg-gray-800" style={{maxHeight: '450px'}}>
                   {chatMessages.length === 0 && (
                     <div className="text-center py-8">
                       <div className="text-4xl mb-3">👋</div>
@@ -2620,8 +2700,9 @@ Agora, extraia os dados do texto do usuário:`;
                             ? 'bg-purple-600 text-white'
                             : 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-600'
                         }`}
+                        style={{wordWrap: 'break-word', overflowWrap: 'break-word'}}
                       >
-                        <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                        <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
                       </div>
                     </div>
                   ))}
