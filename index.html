@@ -1420,6 +1420,11 @@
           setIsLoadingClaude(true);
 
           try {
+            // Get currently selected study and its variables
+            const selectedStudy = inputValues.selectedStudyId || null;
+            const selectedStudyBaseline = selectedStudy ? (baselineVariables[selectedStudy] || []) : [];
+            const selectedStudyOutcomes = selectedStudy ? (outcomesVariables[selectedStudy] || []) : [];
+
             // Prepare context with current project data
             const contextData = {
               projectName: currentProject.name,
@@ -1430,7 +1435,10 @@
               outcomesVariables,
               groupNames,
               usedInterventions,
-              currentStudyCount: studyIds.length
+              currentStudyCount: studyIds.length,
+              selectedStudy,
+              selectedStudyBaseline,
+              selectedStudyOutcomes
             };
 
             // Create comprehensive prompt for Claude based on project mode
@@ -1525,6 +1533,31 @@ EXEMPLO PARA MODO NETWORK (estudo com 3 intervenções: DrugA, DrugB, Placebo):
 ]`;
             }
 
+            // Build context about selected study and existing variables
+            let selectedStudyContext = '';
+            if (selectedStudy) {
+              selectedStudyContext = `
+📍 ESTUDO ATUALMENTE SELECIONADO: "${selectedStudy}"
+
+VARIÁVEIS JÁ EXISTENTES PARA ESTE ESTUDO:
+
+Baseline (${selectedStudyBaseline.length} variáveis):
+${selectedStudyBaseline.length > 0 ? selectedStudyBaseline.map(v => `  • ${v.label} (${v.type})`).join('\n') : '  (nenhuma variável baseline ainda)'}
+
+Outcomes (${selectedStudyOutcomes.length} variáveis):
+${selectedStudyOutcomes.length > 0 ? selectedStudyOutcomes.map(v => `  • ${v.label} (${v.type})`).join('\n') : '  (nenhuma variável outcome ainda)'}
+
+💡 DICA: Se o usuário não especificar o studyId, use "${selectedStudy}" pois é o estudo atualmente selecionado.
+💡 DICA: Você pode adicionar variáveis novas OU complementar as existentes para este estudo.
+`;
+            } else {
+              selectedStudyContext = `
+⚠️ NENHUM ESTUDO SELECIONADO no momento.
+- O usuário DEVE especificar o studyId no texto fornecido
+- OU você pode criar um novo estudo
+`;
+            }
+
             const systemPrompt = `Você é um assistente especializado em extrair e organizar dados de estudos científicos. Seu trabalho é pegar o texto fornecido pelo usuário e transformá-lo em dados estruturados seguindo EXATAMENTE o formato JSON especificado.
 
 IMPORTANTE: Você está trabalhando no projeto "${currentProject.name}" (ID: ${currentProject.id})
@@ -1536,6 +1569,8 @@ CONTEXTO DO PROJETO ATUAL:
 - Estudos já existentes: ${studyIds.length > 0 ? studyIds.join(', ') : 'Nenhum ainda'}
 - Intervenções usadas (modo network): ${usedInterventions.length > 0 ? usedInterventions.join(', ') : 'N/A'}
 - Total de estudos: ${studyIds.length}
+
+${selectedStudyContext}
 
 ${modeInstructions}
 
@@ -2626,20 +2661,42 @@ Agora, extraia os dados do texto do usuário seguindo EXATAMENTE o modo ${groupT
                       </p>
 
                       {currentProject && (
-                        <div className="bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded-lg p-3 mt-4 mx-2">
-                          <p className="text-xs text-green-800 dark:text-green-200 font-semibold mb-1">
-                            ✅ Projeto aberto:
-                          </p>
-                          <p className="text-sm text-green-700 dark:text-green-300 font-bold">
-                            {currentProject.name}
-                          </p>
-                          <p className="text-xs text-green-600 dark:text-green-400 mt-1">
-                            Tipo: {groupType === 'intervention' ? 'Intervenção' : groupType === 'intervention_comparison' ? 'Intervenção vs Comparação' : 'Network Meta-analysis'}
-                          </p>
-                          <p className="text-xs text-green-600 dark:text-green-400">
-                            Estudos: {studyIds.length}
-                          </p>
-                        </div>
+                        <>
+                          <div className="bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded-lg p-3 mt-4 mx-2">
+                            <p className="text-xs text-green-800 dark:text-green-200 font-semibold mb-1">
+                              ✅ Projeto aberto:
+                            </p>
+                            <p className="text-sm text-green-700 dark:text-green-300 font-bold">
+                              {currentProject.name}
+                            </p>
+                            <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                              Tipo: {groupType === 'intervention' ? 'Intervenção' : groupType === 'intervention_comparison' ? 'Intervenção vs Comparação' : 'Network Meta-analysis'}
+                            </p>
+                            <p className="text-xs text-green-600 dark:text-green-400">
+                              Estudos: {studyIds.length}
+                            </p>
+                          </div>
+
+                          {inputValues.selectedStudyId && (
+                            <div className="bg-purple-100 dark:bg-purple-900/30 border border-purple-300 dark:border-purple-700 rounded-lg p-3 mt-2 mx-2">
+                              <p className="text-xs text-purple-800 dark:text-purple-200 font-semibold mb-1">
+                                📍 Estudo selecionado:
+                              </p>
+                              <p className="text-sm text-purple-700 dark:text-purple-300 font-bold">
+                                {inputValues.selectedStudyId}
+                              </p>
+                              <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+                                Baseline: {(baselineVariables[inputValues.selectedStudyId] || []).length} variáveis
+                              </p>
+                              <p className="text-xs text-purple-600 dark:text-purple-400">
+                                Outcomes: {(outcomesVariables[inputValues.selectedStudyId] || []).length} variáveis
+                              </p>
+                              <p className="text-xs text-purple-500 dark:text-purple-400 mt-2 italic">
+                                💡 Se você não especificar o study ID, usarei este!
+                              </p>
+                            </div>
+                          )}
+                        </>
                       )}
 
                       {!currentProject && (
