@@ -1486,8 +1486,11 @@ REGRAS IMPORTANTES:
 
 Agora, extraia os dados do texto do usuário:`;
 
-            // Call Claude API
-            const response = await fetch('https://api.anthropic.com/v1/messages', {
+            // Call Claude API via local proxy server
+            // The proxy server solves CORS issues when calling Anthropic API from browser
+            const apiUrl = 'http://localhost:3001/v1/messages';
+
+            const response = await fetch(apiUrl, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -1665,9 +1668,28 @@ Agora, extraia os dados do texto do usuário:`;
 
           } catch (error) {
             console.error('Error calling Claude:', error);
+
+            let errorMessage = `❌ Erro: ${error.message}\n\n`;
+
+            // Check if error is related to connection failure (proxy not running)
+            if (error.message === 'Failed to fetch' || error.message.includes('NetworkError')) {
+              errorMessage += `🔧 O servidor proxy não está rodando!\n\n` +
+                `Para resolver:\n` +
+                `1. Abra um terminal na pasta do projeto\n` +
+                `2. Execute: node claude-proxy-server.js\n` +
+                `3. Aguarde a mensagem "Server is running"\n` +
+                `4. Tente novamente\n\n` +
+                `📝 Nota: O servidor proxy é necessário para evitar problemas de CORS ao chamar a API da Anthropic do navegador.`;
+            } else {
+              errorMessage += `Verifique:\n` +
+                `✓ Se o servidor proxy está rodando (node claude-proxy-server.js)\n` +
+                `✓ Se sua API key está correta\n` +
+                `✓ Se você tem créditos disponíveis na Anthropic`;
+            }
+
             setChatMessages(prev => [...prev, {
               role: 'assistant',
-              content: `❌ Erro: ${error.message}\n\nVerifique se sua API key está correta e se você tem créditos disponíveis na Anthropic.`
+              content: errorMessage
             }]);
           } finally {
             setIsLoadingClaude(false);
@@ -2482,6 +2504,18 @@ Agora, extraia os dados do texto do usuário:`;
                       <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 px-4">
                         Cole qualquer texto com dados de estudos e eu vou organizar automaticamente no formato correto para você!
                       </p>
+
+                      <div className="bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 rounded-lg p-3 mt-4 mx-2 text-left">
+                        <p className="text-xs text-blue-800 dark:text-blue-200 font-semibold mb-2">
+                          🚀 Para começar:
+                        </p>
+                        <ol className="text-xs text-blue-700 dark:text-blue-300 space-y-1 ml-4 list-decimal">
+                          <li>Execute o servidor proxy: <code className="bg-blue-200 dark:bg-blue-800 px-1 rounded">node claude-proxy-server.js</code></li>
+                          <li>Configure sua API key (clique em ⚙️)</li>
+                          <li>Cole seus dados e pronto!</li>
+                        </ol>
+                      </div>
+
                       {!claudeApiKey && (
                         <div className="bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded-lg p-3 mt-4 mx-2">
                           <p className="text-sm text-yellow-800 dark:text-yellow-200 mb-2">
