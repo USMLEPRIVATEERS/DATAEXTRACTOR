@@ -1761,17 +1761,10 @@ Agora, extraia os dados do texto do usuário seguindo EXATAMENTE o modo ${groupT
                   `📚 ${extractedData.studies.length} estudo(s) processado(s)\n` +
                   (errorCount > 0 ? `\n⚠️ ${errorCount} erro(s):\n${errors.join('\n')}` : '') +
                   `\n\n💾 Os dados foram salvos no projeto "${currentProject.name}".\n` +
-                  `🎯 Mudando automaticamente para a tela de variáveis...`
+                  `Você pode verificá-los na tela de entrada de variáveis.`
               };
               return newMessages;
             });
-
-            // Automatically switch to variable input screen to show the new data
-            // Small delay to let user read the success message
-            setTimeout(() => {
-              setCurrentScreen('variableInput');
-              setIsChatOpen(false); // Close chat to show the variables
-            }, 1500);
 
           } catch (error) {
             console.error('Error calling Claude:', error);
