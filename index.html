@@ -5681,8 +5681,17 @@
           const labels = new Set();
 
           studyIds.forEach(studyId => {
-            const studyVars = variables[studyId] || [];
-            studyVars.forEach(v => {
+            // Get labels from both baseline and outcomes variables
+            const baselineVars = baselineVariables[studyId] || [];
+            const outcomesVars = outcomesVariables[studyId] || [];
+
+            baselineVars.forEach(v => {
+              if (v.label) {
+                labels.add(v.label);
+              }
+            });
+
+            outcomesVars.forEach(v => {
               if (v.label) {
                 labels.add(v.label);
               }
