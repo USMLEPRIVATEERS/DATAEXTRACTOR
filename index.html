@@ -6496,7 +6496,9 @@ Extract ALL data from the article(s) I provide and return BOTH baselineVariables
             alert(`Found ${result.errors.length} error(s) in the code. Please review and fix them.`);
           } else {
             // Data is valid, add it to the dataset
-            const newVariables = { ...variables };
+            // Create separate objects for baseline and outcomes
+            const newBaselineVariables = { ...baselineVariables };
+            const newOutcomesVariables = { ...outcomesVariables };
             let totalVariablesAdded = 0;
             let baselineVariablesAdded = 0;
             let outcomesVariablesAdded = 0;
@@ -6514,51 +6516,53 @@ Extract ALL data from the article(s) I provide and return BOTH baselineVariables
                 newStudiesAdded.push(studyName);
               }
 
-              // Get existing variables for this study or create empty array
-              const existingVars = newVariables[studyName] ? [...newVariables[studyName]] : [];
-
-              // Add baseline variables
+              // Process baseline variables
               const baselineVars = result.parsedData.baseline[studyName] || [];
-              baselineVars.forEach((variable) => {
-                // Check if variable with same label already exists
-                const existingIndex = existingVars.findIndex((v) => v.label === variable.label);
+              if (baselineVars.length > 0) {
+                // Get existing baseline variables for this study or create empty array
+                const existingBaselineVars = newBaselineVariables[studyName] ? [...newBaselineVariables[studyName]] : [];
 
-                if (existingIndex !== -1) {
-                  // Update existing variable
-                  existingVars[existingIndex] = variable;
-                } else {
-                  // Add new variable
-                  existingVars.push(variable);
-                  totalVariablesAdded++;
-                  baselineVariablesAdded++;
-                }
-              });
+                baselineVars.forEach((variable) => {
+                  // Check if variable with same label already exists
+                  const existingIndex = existingBaselineVars.findIndex((v) => v.label === variable.label);
 
-              // Add outcomes variables
+                  if (existingIndex !== -1) {
+                    // Update existing variable
+                    existingBaselineVars[existingIndex] = variable;
+                  } else {
+                    // Add new variable
+                    existingBaselineVars.push(variable);
+                    totalVariablesAdded++;
+                    baselineVariablesAdded++;
+                  }
+                });
+
+                newBaselineVariables[studyName] = existingBaselineVars;
+              }
+
+              // Process outcomes variables
               const outcomesVars = result.parsedData.outcomes[studyName] || [];
-              outcomesVars.forEach((variable) => {
-                // Check if variable with same label already exists
-                const existingIndex = existingVars.findIndex((v) => v.label === variable.label);
+              if (outcomesVars.length > 0) {
+                // Get existing outcomes variables for this study or create empty array
+                const existingOutcomesVars = newOutcomesVariables[studyName] ? [...newOutcomesVariables[studyName]] : [];
 
-                if (existingIndex !== -1) {
-                  // Update existing variable
-                  existingVars[existingIndex] = variable;
-                } else {
-                  // Add new variable
-                  existingVars.push(variable);
-                  totalVariablesAdded++;
-                  outcomesVariablesAdded++;
-                }
-              });
+                outcomesVars.forEach((variable) => {
+                  // Check if variable with same label already exists
+                  const existingIndex = existingOutcomesVars.findIndex((v) => v.label === variable.label);
 
-              newVariables[studyName] = existingVars;
+                  if (existingIndex !== -1) {
+                    // Update existing variable
+                    existingOutcomesVars[existingIndex] = variable;
+                  } else {
+                    // Add new variable
+                    existingOutcomesVars.push(variable);
+                    totalVariablesAdded++;
+                    outcomesVariablesAdded++;
+                  }
+                });
 
-              // Update variablesOrder
-              setVariablesOrder((prevOrder) => {
-                const newOrder = { ...prevOrder };
-                newOrder[studyName] = existingVars.map((v) => v.id);
-                return newOrder;
-              });
+                newOutcomesVariables[studyName] = existingOutcomesVars;
+              }
             });
 
             // Update studyIds state if new studies were added
@@ -6571,8 +6575,9 @@ Extract ALL data from the article(s) I provide and return BOTH baselineVariables
               }));
             }
 
-            // Update variables state
-            setVariables(newVariables);
+            // Update BOTH baseline and outcomes variables states
+            setBaselineVariables(newBaselineVariables);
+            setOutcomesVariables(newOutcomesVariables);
 
             // Success message
             let message = `Successfully added ${totalVariablesAdded} variable(s)`;
