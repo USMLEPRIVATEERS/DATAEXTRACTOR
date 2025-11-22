@@ -5699,13 +5699,16 @@
           const isSingleArm = !isDoubleArm;
           const varTypeKey = varCategory === 'baseline' ? 'baselineVariables' : 'outcomesVariables';
 
+          // Get the currently selected study name for examples
+          const exampleStudyName = inputValues.selectedStudyId || studyIds[0] || 'Study Name 2024';
+
           let examples = '';
 
           if (importVariableType === 'dichotomous') {
             if (isDoubleArm) {
               examples = `// Double-Arm Dichotomous Data Format:
 const ${varTypeKey} = {
-  "Study Name 2024": [
+  "${exampleStudyName}": [
     {
       id: ${Date.now() + Math.random()},
       label: "${varCategory === 'baseline' ? 'Age > 65' : 'Mortality'}",
@@ -5737,7 +5740,7 @@ const ${varTypeKey} = {
             } else {
               examples = `// Single-Arm Dichotomous Data Format:
 const ${varTypeKey} = {
-  "Study Name 2024": [
+  "${exampleStudyName}": [
     {
       id: ${Date.now() + Math.random()},
       label: "${varCategory === 'baseline' ? 'Age > 65' : 'Mortality'}",
@@ -5767,7 +5770,7 @@ const ${varTypeKey} = {
             if (isDoubleArm) {
               examples = `// Double-Arm Continuous Data Format:
 const ${varTypeKey} = {
-  "Study Name 2024": [
+  "${exampleStudyName}": [
     {
       id: ${Date.now() + Math.random()},
       label: "${varCategory === 'baseline' ? 'Age (years)' : 'Pain Score'}",
@@ -5799,7 +5802,7 @@ const ${varTypeKey} = {
             } else {
               examples = `// Single-Arm Continuous Data Format:
 const ${varTypeKey} = {
-  "Study Name 2024": [
+  "${exampleStudyName}": [
     {
       id: ${Date.now() + Math.random()},
       label: "${varCategory === 'baseline' ? 'Age (years)' : 'Pain Score'}",
@@ -5831,7 +5834,7 @@ const ${varTypeKey} = {
             if (isDoubleArm) {
               examples = `// Double-Arm Text Data Format:
 const ${varTypeKey} = {
-  "Study Name 2024": [
+  "${exampleStudyName}": [
     {
       id: ${Date.now() + Math.random()},
       label: "${varCategory === 'baseline' ? 'Study Design' : 'Primary Outcome'}",
@@ -5863,7 +5866,7 @@ const ${varTypeKey} = {
             } else {
               examples = `// Single-Arm Text Data Format:
 const ${varTypeKey} = {
-  "Study Name 2024": [
+  "${exampleStudyName}": [
     {
       id: ${Date.now() + Math.random()},
       label: "${varCategory === 'baseline' ? 'Study Design' : 'Primary Outcome'}",
@@ -5895,13 +5898,16 @@ const ${varTypeKey} = {
           const isSingleArm = !isDoubleArm;
           const varTypeKey = selectedOption === 'baseline' ? 'baselineVariables' : 'outcomesVariables';
 
+          // Get the currently selected study name for examples
+          const exampleStudyName = inputValues.selectedStudyId || studyIds[0] || 'Study Name 2024';
+
           let examples = '';
 
           if (importVariableType === 'dichotomous') {
             if (isDoubleArm) {
               examples = `// Double-Arm Dichotomous Data Format:
 const ${varTypeKey} = {
-  "Study Name 2024": [
+  "${exampleStudyName}": [
     {
       id: ${Date.now() + Math.random()},
       label: "Mortality",
@@ -5933,7 +5939,7 @@ const ${varTypeKey} = {
             } else {
               examples = `// Single-Arm Dichotomous Data Format:
 const ${varTypeKey} = {
-  "Study Name 2024": [
+  "${exampleStudyName}": [
     {
       id: ${Date.now() + Math.random()},
       label: "Age > 65",
@@ -5963,7 +5969,7 @@ const ${varTypeKey} = {
             if (isDoubleArm) {
               examples = `// Double-Arm Continuous Data Format:
 const ${varTypeKey} = {
-  "Study Name 2024": [
+  "${exampleStudyName}": [
     {
       id: ${Date.now() + Math.random()},
       label: "Pain Score",
@@ -5995,7 +6001,7 @@ const ${varTypeKey} = {
             } else {
               examples = `// Single-Arm Continuous Data Format:
 const ${varTypeKey} = {
-  "Study Name 2024": [
+  "${exampleStudyName}": [
     {
       id: ${Date.now() + Math.random()},
       label: "Age (years)",
@@ -6027,7 +6033,7 @@ const ${varTypeKey} = {
             if (isDoubleArm) {
               examples = `// Double-Arm Text Data Format:
 const ${varTypeKey} = {
-  "Study Name 2024": [
+  "${exampleStudyName}": [
     {
       id: ${Date.now() + Math.random()},
       label: "Study Design",
@@ -6059,7 +6065,7 @@ const ${varTypeKey} = {
             } else {
               examples = `// Single-Arm Text Data Format:
 const ${varTypeKey} = {
-  "Study Name 2024": [
+  "${exampleStudyName}": [
     {
       id: ${Date.now() + Math.random()},
       label: "Study Design",
@@ -6145,7 +6151,13 @@ const ${varTypeKey} = {
           const varTypeLabel = importVariableType.charAt(0).toUpperCase() + importVariableType.slice(1);
           const armTypeLabel = isDoubleArm ? 'Double-Arm' : 'Single-Arm';
 
+          // Get the currently selected study name
+          const currentStudyName = inputValues.selectedStudyId || studyIds[0] || '';
+
           let prompt = `I need you to extract ${armTypeLabel} ${varTypeLabel} data from research articles and format it exactly as JavaScript code.
+
+**STUDY NAME:**
+Use this exact study name as the key in your JavaScript objects: "${currentStudyName}"
 
 **IMPORTANT FORMATTING RULES:**
 1. Return VALID JavaScript code in the exact format shown below
@@ -8595,7 +8607,7 @@ Extract ALL data from the article(s) I provide and return BOTH baselineVariables
 
 Example:
 const ${selectedOption === 'baseline' ? 'baselineVariables' : 'outcomesVariables'} = {
-  "Study Name 2024": [
+  "${exampleStudyName}": [
     {
       id: 1234567890.1234,
       label: "Age",
