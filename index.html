@@ -6185,13 +6185,34 @@ No existing variable labels found yet. You can create new labels as needed.
 `}
 
 **YOUR TASK:**
-Extract data from the article(s) I provide and return BOTH baselineVariables and outcomesVariables.
-- Return ONLY valid JavaScript code (no markdown, no explanations, no extra text)
+Extract ALL data from the article(s) I provide and return BOTH baselineVariables and outcomesVariables.
+
+**CRITICAL: EXTRACT EVERYTHING - Follow this order:**
+1. **Check ALL TABLES** in the article (main tables and supplementary tables)
+2. **Check the RESULTS section** thoroughly for any reported data
+3. **Check ALL FIGURES** (graphs, charts, plots) for extractable data
+4. **Check SUPPLEMENTARY MATERIAL** if available (supplementary tables, figures, appendices)
+
+**DO NOT MISS ANY DATA - Extract from all sources mentioned above!**
+
+**DATA FORMAT REQUIREMENTS:**
+- For CONTINUOUS variables: Data MUST be in "mean" and "sd" format
+- For DICHOTOMOUS variables: Data MUST be in "events" and "total" format
+- If you find data in OTHER FORMATS (median/IQR, median/range, mean/SE, mean/CI, percentages without raw numbers, etc.):
+  * DO NOT try to convert them yourself
+  * LIST these variables SEPARATELY at the end with a clear note: "// DATA IN NON-STANDARD FORMAT - REQUIRES MANUAL CONVERSION:"
+  * Provide ALL the information available (e.g., "median: X, IQR: Y-Z" or "mean: X, 95% CI: Y-Z")
+  * List them for BOTH baseline and outcomes sections separately
+  * The user will manually convert these using a calculator later
+
+**OUTPUT FORMAT:**
+- Return ONLY valid JavaScript code (no markdown, no explanations, no extra text before the code)
 - Return BOTH const declarations (baselineVariables and outcomesVariables)
 - Use the exact same structure as the examples above
 - Make sure all syntax is correct (commas, quotes, braces)
 - For MULTIPLE studies, add more entries to each object with different study names as keys
-- IMPORTANT: Try to use existing label names from the list above when applicable to maintain consistency across studies`;
+- IMPORTANT: Try to use existing label names from the list above when applicable to maintain consistency across studies
+- If there are variables with non-standard formats, add them as comments at the end of your code with the note "// DATA IN NON-STANDARD FORMAT - REQUIRES MANUAL CONVERSION:"`;
 
           return prompt;
         };
