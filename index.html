@@ -8607,7 +8607,7 @@ Extract ALL data from the article(s) I provide and return BOTH baselineVariables
 
 Example:
 const ${selectedOption === 'baseline' ? 'baselineVariables' : 'outcomesVariables'} = {
-  "${exampleStudyName}": [
+  "${inputValues.selectedStudyId || studyIds[0] || 'Study Name 2024'}": [
     {
       id: 1234567890.1234,
       label: "Age",
