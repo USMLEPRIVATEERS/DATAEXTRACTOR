@@ -5681,64 +5681,192 @@
           const isNetwork = groupType === 'network';
           const isDoubleArm = groupType === 'intervention_comparison' && importArmType === 'double';
           const isSingleArm = !isDoubleArm;
+          const varTypeKey = selectedOption === 'baseline' ? 'baselineVariables' : 'outcomesVariables';
 
           let examples = '';
 
           if (importVariableType === 'dichotomous') {
             if (isDoubleArm) {
-              examples = `# Double-Arm Dichotomous Data Format:
-# LABEL | INTERVENTION_EVENTS | INTERVENTION_TOTAL | COMPARISON_TOTAL | COMPARISON_EVENTS
-
-Mortality | 15 | 100 | 100 | 25
-Recovery | 75 | 100 | 100 | 60
-Adverse Events | 8 | 100 | 100 | 12`;
+              examples = `// Double-Arm Dichotomous Data Format:
+const ${varTypeKey} = {
+  "Study Name 2024": [
+    {
+      id: ${Date.now() + Math.random()},
+      label: "Mortality",
+      type: "dichotomous",
+      value: {
+        intervention: "15",
+        comparison: "25",
+        interventionTotal: "100",
+        comparisonTotal: "100"
+      },
+      isSinglePlaceholder: false,
+      armType: "double"${isNetwork ? `,\n      interventionName: "${selectedOption === 'baseline' ? 'baseline' : (picoInterventionName || 'intervention')}"` : ''}
+    },
+    {
+      id: ${Date.now() + Math.random() + 1},
+      label: "Recovery",
+      type: "dichotomous",
+      value: {
+        intervention: "75",
+        comparison: "60",
+        interventionTotal: "100",
+        comparisonTotal: "100"
+      },
+      isSinglePlaceholder: false,
+      armType: "double"${isNetwork ? `,\n      interventionName: "${selectedOption === 'baseline' ? 'baseline' : (picoInterventionName || 'intervention')}"` : ''}
+    }
+  ]
+};`;
             } else {
-              examples = `# Single-Arm Dichotomous Data Format:
-# LABEL | EVENTS | TOTAL
-
-Age > 65 | 45 | 100
-Male gender | 60 | 100
-Smoker | 30 | 100`;
+              examples = `// Single-Arm Dichotomous Data Format:
+const ${varTypeKey} = {
+  "Study Name 2024": [
+    {
+      id: ${Date.now() + Math.random()},
+      label: "Age > 65",
+      type: "dichotomous",
+      value: {
+        events: "45",
+        total: "100"
+      },
+      isSinglePlaceholder: false,
+      armType: "single"${isNetwork ? `,\n      interventionName: "${selectedOption === 'baseline' ? 'baseline' : (picoInterventionName || 'intervention')}"` : ''}
+    },
+    {
+      id: ${Date.now() + Math.random() + 1},
+      label: "Male gender",
+      type: "dichotomous",
+      value: {
+        events: "60",
+        total: "100"
+      },
+      isSinglePlaceholder: false,
+      armType: "single"${isNetwork ? `,\n      interventionName: "${selectedOption === 'baseline' ? 'baseline' : (picoInterventionName || 'intervention')}"` : ''}
+    }
+  ]
+};`;
             }
           } else if (importVariableType === 'continuous') {
             if (isDoubleArm) {
-              examples = `# Double-Arm Continuous Data Format:
-# LABEL | INTERVENTION_MEAN | INTERVENTION_SD | INTERVENTION_TOTAL | COMPARISON_MEAN | COMPARISON_SD | COMPARISON_TOTAL
-
-Pain Score | 3.2 | 1.5 | 100 | 5.8 | 1.8 | 100
-Quality of Life | 75.5 | 10.2 | 100 | 68.3 | 12.1 | 100
-Hospital Stay (days) | 4.5 | 2.1 | 100 | 6.2 | 2.8 | 100`;
+              examples = `// Double-Arm Continuous Data Format:
+const ${varTypeKey} = {
+  "Study Name 2024": [
+    {
+      id: ${Date.now() + Math.random()},
+      label: "Pain Score",
+      type: "continuous",
+      value: {
+        intervention: { mean: "3.2", sd: "1.5" },
+        comparison: { mean: "5.8", sd: "1.8" },
+        interventionTotal: "100",
+        comparisonTotal: "100"
+      },
+      isSinglePlaceholder: false,
+      armType: "double"${isNetwork ? `,\n      interventionName: "${selectedOption === 'baseline' ? 'baseline' : (picoInterventionName || 'intervention')}"` : ''}
+    },
+    {
+      id: ${Date.now() + Math.random() + 1},
+      label: "Quality of Life",
+      type: "continuous",
+      value: {
+        intervention: { mean: "75.5", sd: "10.2" },
+        comparison: { mean: "68.3", sd: "12.1" },
+        interventionTotal: "100",
+        comparisonTotal: "100"
+      },
+      isSinglePlaceholder: false,
+      armType: "double"${isNetwork ? `,\n      interventionName: "${selectedOption === 'baseline' ? 'baseline' : (picoInterventionName || 'intervention')}"` : ''}
+    }
+  ]
+};`;
             } else {
-              examples = `# Single-Arm Continuous Data Format:
-# LABEL | MEAN | SD | TOTAL
-
-Age (years) | 65.5 | 12.3 | 100
-BMI | 28.4 | 5.2 | 100
-Blood Pressure (mmHg) | 130.2 | 15.8 | 100`;
+              examples = `// Single-Arm Continuous Data Format:
+const ${varTypeKey} = {
+  "Study Name 2024": [
+    {
+      id: ${Date.now() + Math.random()},
+      label: "Age (years)",
+      type: "continuous",
+      value: {
+        mean: "65.5",
+        sd: "12.3",
+        total: "100"
+      },
+      isSinglePlaceholder: false,
+      armType: "single"${isNetwork ? `,\n      interventionName: "${selectedOption === 'baseline' ? 'baseline' : (picoInterventionName || 'intervention')}"` : ''}
+    },
+    {
+      id: ${Date.now() + Math.random() + 1},
+      label: "BMI",
+      type: "continuous",
+      value: {
+        mean: "28.4",
+        sd: "5.2",
+        total: "100"
+      },
+      isSinglePlaceholder: false,
+      armType: "single"${isNetwork ? `,\n      interventionName: "${selectedOption === 'baseline' ? 'baseline' : (picoInterventionName || 'intervention')}"` : ''}
+    }
+  ]
+};`;
             }
           } else if (importVariableType === 'text') {
             if (isDoubleArm) {
-              examples = `# Double-Arm Text Data Format:
-# LABEL | INTERVENTION_VALUE | INTERVENTION_TOTAL | COMPARISON_TOTAL | COMPARISON_VALUE
-
-Study Design | Randomized controlled trial | 100 | 100 | Randomized controlled trial
-Setting | Hospital | 100 | 100 | Hospital
-Country | USA | 100 | 100 | USA`;
+              examples = `// Double-Arm Text Data Format:
+const ${varTypeKey} = {
+  "Study Name 2024": [
+    {
+      id: ${Date.now() + Math.random()},
+      label: "Study Design",
+      type: "text",
+      value: {
+        intervention: "Randomized controlled trial",
+        comparison: "Randomized controlled trial",
+        interventionTotal: "100",
+        comparisonTotal: "100"
+      },
+      isSinglePlaceholder: false,
+      armType: "double"${isNetwork ? `,\n      interventionName: "${selectedOption === 'baseline' ? 'baseline' : (picoInterventionName || 'intervention')}"` : ''}
+    },
+    {
+      id: ${Date.now() + Math.random() + 1},
+      label: "Setting",
+      type: "text",
+      value: {
+        intervention: "Hospital",
+        comparison: "Hospital",
+        interventionTotal: "100",
+        comparisonTotal: "100"
+      },
+      isSinglePlaceholder: false,
+      armType: "double"${isNetwork ? `,\n      interventionName: "${selectedOption === 'baseline' ? 'baseline' : (picoInterventionName || 'intervention')}"` : ''}
+    }
+  ]
+};`;
             } else {
-              examples = `# Single-Arm Text Data Format:
-# LABEL | VALUE
-
-Study Design | Randomized controlled trial
-Setting | Hospital
-Country | USA
-Institution | University Medical Center`;
+              examples = `// Single-Arm Text Data Format:
+const ${varTypeKey} = {
+  "Study Name 2024": [
+    {
+      id: ${Date.now() + Math.random()},
+      label: "Study Design",
+      type: "text",
+      value: "Randomized controlled trial",
+      isSinglePlaceholder: true,
+      armType: "single"
+    },
+    {
+      id: ${Date.now() + Math.random() + 1},
+      label: "Setting",
+      type: "text",
+      value: "Hospital",
+      isSinglePlaceholder: true,
+      armType: "single"
+    }
+  ]
+};`;
             }
-          }
-
-          if (isNetwork && selectedOption === 'outcomes') {
-            examples += `\n\n# NOTE: For Network mode outcomes, this data will be associated with intervention: "${picoInterventionName || '[Enter intervention name]'}"`;
-          } else if (isNetwork && selectedOption === 'baseline') {
-            examples += `\n\n# NOTE: For Network mode baseline, this data will be associated with intervention: "baseline"`;
           }
 
           return examples;
@@ -5746,61 +5874,50 @@ Institution | University Medical Center`;
 
         // Convert existing variables to code format
         const convertExistingDataToCode = () => {
-          const selectedStudyId = inputValues.selectedStudyId || studyIds[0];
-          const studyVars = variables[selectedStudyId] || [];
+          const varTypeKey = selectedOption === 'baseline' ? 'baselineVariables' : 'outcomesVariables';
 
-          if (studyVars.length === 0) {
-            return '# No existing data to display\n# Add some data first or use the examples above';
-          }
+          // Get all studies and their variables
+          const allStudiesData = {};
 
-          let code = '# Existing Data:\n\n';
+          studyIds.forEach(studyId => {
+            const studyVars = (variables[studyId] || []).filter(v =>
+              v.type === importVariableType && v.armType === importArmType
+            );
 
-          studyVars.forEach(variable => {
-            if (variable.type !== importVariableType) return;
-            if (variable.armType !== importArmType) return;
-
-            const label = variable.label;
-
-            if (variable.type === 'dichotomous') {
-              if (variable.armType === 'double') {
-                const intervention = variable.value.intervention || '';
-                const interventionTotal = variable.value.interventionTotal || '';
-                const comparisonTotal = variable.value.comparisonTotal || '';
-                const comparison = variable.value.comparison || '';
-                code += `${label} | ${intervention} | ${interventionTotal} | ${comparisonTotal} | ${comparison}\n`;
-              } else {
-                const events = variable.value.events || '';
-                const total = variable.value.total || '';
-                code += `${label} | ${events} | ${total}\n`;
-              }
-            } else if (variable.type === 'continuous') {
-              if (variable.armType === 'double') {
-                const intMean = variable.value.intervention?.mean || '';
-                const intSd = variable.value.intervention?.sd || '';
-                const intTotal = variable.value.interventionTotal || '';
-                const compMean = variable.value.comparison?.mean || '';
-                const compSd = variable.value.comparison?.sd || '';
-                const compTotal = variable.value.comparisonTotal || '';
-                code += `${label} | ${intMean} | ${intSd} | ${intTotal} | ${compMean} | ${compSd} | ${compTotal}\n`;
-              } else {
-                const mean = variable.value.mean || '';
-                const sd = variable.value.sd || '';
-                const total = variable.value.total || '';
-                code += `${label} | ${mean} | ${sd} | ${total}\n`;
-              }
-            } else if (variable.type === 'text') {
-              if (variable.armType === 'double') {
-                const intervention = variable.value.intervention || '';
-                const interventionTotal = variable.value.interventionTotal || '';
-                const comparisonTotal = variable.value.comparisonTotal || '';
-                const comparison = variable.value.comparison || '';
-                code += `${label} | ${intervention} | ${interventionTotal} | ${comparisonTotal} | ${comparison}\n`;
-              } else {
-                const value = variable.value || '';
-                code += `${label} | ${value}\n`;
-              }
+            if (studyVars.length > 0) {
+              allStudiesData[studyId] = studyVars;
             }
           });
+
+          if (Object.keys(allStudiesData).length === 0) {
+            return '// No existing data to display\n// Add some data first or use the examples above';
+          }
+
+          let code = `// Existing Data:\nconst ${varTypeKey} = {\n`;
+
+          Object.entries(allStudiesData).forEach(([studyId, studyVars], studyIndex) => {
+            code += `  "${studyId}": [\n`;
+
+            studyVars.forEach((variable, varIndex) => {
+              code += `    {\n`;
+              code += `      id: ${variable.id},\n`;
+              code += `      label: "${variable.label}",\n`;
+              code += `      type: "${variable.type}",\n`;
+              code += `      value: ${JSON.stringify(variable.value, null, 8).replace(/^/gm, '      ').trim()},\n`;
+              code += `      isSinglePlaceholder: ${variable.isSinglePlaceholder},\n`;
+              code += `      armType: "${variable.armType}"`;
+
+              if (variable.interventionName) {
+                code += `,\n      interventionName: "${variable.interventionName}"`;
+              }
+
+              code += `\n    }${varIndex < studyVars.length - 1 ? ',' : ''}\n`;
+            });
+
+            code += `  ]${studyIndex < Object.keys(allStudiesData).length - 1 ? ',' : ''}\n`;
+          });
+
+          code += `};\n`;
 
           return code;
         };
@@ -5811,19 +5928,24 @@ Institution | University Medical Center`;
           const existingData = convertExistingDataToCode();
 
           const isDoubleArm = groupType === 'intervention_comparison' && importArmType === 'double';
+          const isNetwork = groupType === 'network';
           const varTypeLabel = importVariableType.charAt(0).toUpperCase() + importVariableType.slice(1);
           const armTypeLabel = isDoubleArm ? 'Double-Arm' : 'Single-Arm';
+          const varTypeKey = selectedOption === 'baseline' ? 'baselineVariables' : 'outcomesVariables';
 
-          let prompt = `I need you to extract ${armTypeLabel} ${varTypeLabel} data from a research article and format it exactly as shown below.
+          let prompt = `I need you to extract ${armTypeLabel} ${varTypeLabel} ${selectedOption === 'baseline' ? 'BASELINE' : 'OUTCOMES'} data from research articles and format it exactly as JavaScript code.
 
 **IMPORTANT FORMATTING RULES:**
-1. Use the pipe character | to separate columns
-2. Each line represents one variable
-3. Lines starting with # are comments and should be ignored
-4. Keep the exact column order as shown in the format
-5. If a value is missing or not reported, leave it empty but keep the pipe separators
-6. Do NOT include column headers in your output
-7. Make sure all numeric values are properly extracted
+1. Return VALID JavaScript code in the exact format shown below
+2. Use the variable name "${varTypeKey}"
+3. Structure: { "Study Name": [ {...}, {...} ] }
+4. Each variable object must have: id, label, type, value, isSinglePlaceholder, armType${isNetwork ? ', interventionName' : ''}
+5. Generate unique IDs using Date.now() + Math.random()
+6. All string values must be in quotes
+7. Follow the exact structure of the value object for each type
+8. If a value is missing, use empty string ""
+${isNetwork && selectedOption === 'baseline' ? '9. For Network mode baseline, ALWAYS set interventionName: "baseline"' : ''}
+${isNetwork && selectedOption === 'outcomes' ? '9. For Network mode outcomes, set interventionName to the specific intervention name' : ''}
 
 **FORMAT TO USE:**
 
@@ -5834,7 +5956,11 @@ ${examples}
 ${existingData}
 
 **YOUR TASK:**
-Extract similar data from the article I provide and format it EXACTLY like the examples above. Return ONLY the data lines (no headers, no explanations), with each line in the format shown.`;
+Extract similar data from the article(s) I provide and format it EXACTLY like the examples above.
+- Return ONLY valid JavaScript code (no markdown, no explanations, no extra text)
+- Use the exact same structure
+- Make sure all syntax is correct (commas, quotes, braces)
+- For MULTIPLE studies, add more entries to the object with different study names as keys`;
 
           return prompt;
         };
@@ -5842,100 +5968,180 @@ Extract similar data from the article I provide and format it EXACTLY like the e
         // Validate and parse code pasted from AI
         const validateAndParseCode = (codeText) => {
           const errors = [];
-          const validLines = [];
-          const lines = codeText.split('\n');
+          const parsedData = {};
 
-          const isDoubleArm = groupType === 'intervention_comparison' && importArmType === 'double';
-
-          lines.forEach((line, index) => {
-            const lineNum = index + 1;
-            const trimmedLine = line.trim();
-
-            // Skip empty lines and comments
-            if (!trimmedLine || trimmedLine.startsWith('#')) {
-              return;
+          try {
+            // Remove code block markers if present
+            let cleanCode = codeText.trim();
+            if (cleanCode.startsWith('```javascript') || cleanCode.startsWith('```js')) {
+              cleanCode = cleanCode.replace(/^```(?:javascript|js)\n/, '').replace(/\n```$/, '');
+            } else if (cleanCode.startsWith('```')) {
+              cleanCode = cleanCode.replace(/^```\n/, '').replace(/\n```$/, '');
             }
 
-            // Split by pipe
-            const parts = trimmedLine.split('|').map(p => p.trim());
+            // Remove const/let/var declaration to get just the object
+            cleanCode = cleanCode.replace(/^(?:const|let|var)\s+(?:baselineVariables|outcomesVariables)\s*=\s*/, '');
 
-            // Validate based on variable type and arm type
-            let expectedColumns = 0;
-            let columnNames = [];
+            // Remove trailing semicolon
+            cleanCode = cleanCode.replace(/;?\s*$/, '');
 
-            if (importVariableType === 'dichotomous') {
-              if (isDoubleArm) {
-                expectedColumns = 5;
-                columnNames = ['LABEL', 'INTERVENTION_EVENTS', 'INTERVENTION_TOTAL', 'COMPARISON_TOTAL', 'COMPARISON_EVENTS'];
-              } else {
-                expectedColumns = 3;
-                columnNames = ['LABEL', 'EVENTS', 'TOTAL'];
-              }
-            } else if (importVariableType === 'continuous') {
-              if (isDoubleArm) {
-                expectedColumns = 7;
-                columnNames = ['LABEL', 'INTERVENTION_MEAN', 'INTERVENTION_SD', 'INTERVENTION_TOTAL', 'COMPARISON_MEAN', 'COMPARISON_SD', 'COMPARISON_TOTAL'];
-              } else {
-                expectedColumns = 4;
-                columnNames = ['LABEL', 'MEAN', 'SD', 'TOTAL'];
-              }
-            } else if (importVariableType === 'text') {
-              if (isDoubleArm) {
-                expectedColumns = 5;
-                columnNames = ['LABEL', 'INTERVENTION_VALUE', 'INTERVENTION_TOTAL', 'COMPARISON_TOTAL', 'COMPARISON_VALUE'];
-              } else {
-                expectedColumns = 2;
-                columnNames = ['LABEL', 'VALUE'];
-              }
-            }
-
-            // Check column count
-            if (parts.length !== expectedColumns) {
+            // Parse the JavaScript object
+            let data;
+            try {
+              // Use Function constructor to safely evaluate the code
+              data = new Function('return ' + cleanCode)();
+            } catch (parseError) {
               errors.push({
-                line: lineNum,
-                message: `Expected ${expectedColumns} columns (${columnNames.join(', ')}) but found ${parts.length}`,
-                type: 'column_count',
-                content: trimmedLine
+                line: 0,
+                message: `Failed to parse JavaScript code: ${parseError.message}`,
+                type: 'syntax_error',
+                content: parseError.message
               });
-              return;
+              return { errors, parsedData, totalLines: codeText.split('\n').length };
             }
 
-            // Check label is not empty
-            if (!parts[0]) {
+            // Validate structure
+            if (typeof data !== 'object' || data === null) {
               errors.push({
-                line: lineNum,
-                message: 'Label cannot be empty',
-                type: 'empty_label',
-                content: trimmedLine
+                line: 0,
+                message: 'Data must be an object with study names as keys',
+                type: 'invalid_structure',
+                content: typeof data
               });
-              return;
+              return { errors, parsedData, totalLines: codeText.split('\n').length };
             }
 
-            // Validate numeric values for dichotomous and continuous
-            if (importVariableType === 'dichotomous' || importVariableType === 'continuous') {
-              const numericIndices = importVariableType === 'dichotomous'
-                ? (isDoubleArm ? [1, 2, 3, 4] : [1, 2])
-                : (isDoubleArm ? [1, 2, 3, 4, 5, 6] : [1, 2, 3]);
+            // Validate each study
+            Object.entries(data).forEach(([studyName, variables]) => {
+              if (!Array.isArray(variables)) {
+                errors.push({
+                  line: 0,
+                  message: `Study "${studyName}" must have an array of variables`,
+                  type: 'invalid_structure',
+                  content: studyName
+                });
+                return;
+              }
 
-              numericIndices.forEach(idx => {
-                const value = parts[idx];
-                if (value && isNaN(Number(value))) {
+              // Validate each variable
+              variables.forEach((variable, idx) => {
+                const varNum = idx + 1;
+
+                // Check required fields
+                if (!variable.hasOwnProperty('id')) {
                   errors.push({
-                    line: lineNum,
-                    message: `Column "${columnNames[idx]}" must be numeric, got: "${value}"`,
-                    type: 'invalid_number',
-                    content: trimmedLine
+                    line: varNum,
+                    message: `Variable ${varNum} in "${studyName}" is missing "id" field`,
+                    type: 'missing_field',
+                    content: JSON.stringify(variable)
                   });
                 }
+
+                if (!variable.label || typeof variable.label !== 'string') {
+                  errors.push({
+                    line: varNum,
+                    message: `Variable ${varNum} in "${studyName}" has invalid or missing "label"`,
+                    type: 'missing_field',
+                    content: JSON.stringify(variable)
+                  });
+                }
+
+                if (variable.type !== importVariableType) {
+                  errors.push({
+                    line: varNum,
+                    message: `Variable ${varNum} in "${studyName}" has type "${variable.type}" but expected "${importVariableType}"`,
+                    type: 'wrong_type',
+                    content: variable.label
+                  });
+                }
+
+                if (variable.armType !== importArmType) {
+                  errors.push({
+                    line: varNum,
+                    message: `Variable ${varNum} in "${studyName}" has armType "${variable.armType}" but expected "${importArmType}"`,
+                    type: 'wrong_armType',
+                    content: variable.label
+                  });
+                }
+
+                if (!variable.hasOwnProperty('value')) {
+                  errors.push({
+                    line: varNum,
+                    message: `Variable ${varNum} in "${studyName}" is missing "value" field`,
+                    type: 'missing_field',
+                    content: variable.label
+                  });
+                }
+
+                if (!variable.hasOwnProperty('isSinglePlaceholder')) {
+                  errors.push({
+                    line: varNum,
+                    message: `Variable ${varNum} in "${studyName}" is missing "isSinglePlaceholder" field`,
+                    type: 'missing_field',
+                    content: variable.label
+                  });
+                }
+
+                // Validate value structure based on type and armType
+                if (variable.type === 'dichotomous') {
+                  if (variable.armType === 'double') {
+                    if (!variable.value || typeof variable.value !== 'object') {
+                      errors.push({
+                        line: varNum,
+                        message: `Variable "${variable.label}" in "${studyName}" must have value object with intervention, comparison, interventionTotal, comparisonTotal`,
+                        type: 'invalid_value',
+                        content: JSON.stringify(variable.value)
+                      });
+                    }
+                  } else {
+                    if (!variable.value || typeof variable.value !== 'object') {
+                      errors.push({
+                        line: varNum,
+                        message: `Variable "${variable.label}" in "${studyName}" must have value object with events, total`,
+                        type: 'invalid_value',
+                        content: JSON.stringify(variable.value)
+                      });
+                    }
+                  }
+                } else if (variable.type === 'continuous') {
+                  if (variable.armType === 'double') {
+                    if (!variable.value || !variable.value.intervention || !variable.value.comparison) {
+                      errors.push({
+                        line: varNum,
+                        message: `Variable "${variable.label}" in "${studyName}" must have value.intervention and value.comparison objects with mean/sd`,
+                        type: 'invalid_value',
+                        content: JSON.stringify(variable.value)
+                      });
+                    }
+                  } else {
+                    if (!variable.value || typeof variable.value !== 'object') {
+                      errors.push({
+                        line: varNum,
+                        message: `Variable "${variable.label}" in "${studyName}" must have value object with mean, sd, total`,
+                        type: 'invalid_value',
+                        content: JSON.stringify(variable.value)
+                      });
+                    }
+                  }
+                }
               });
-            }
 
-            if (errors.filter(e => e.line === lineNum).length === 0) {
-              validLines.push(parts);
-            }
-          });
+              // If no errors for this study, add to parsedData
+              if (errors.length === 0) {
+                parsedData[studyName] = variables;
+              }
+            });
 
-          return { errors, validLines, totalLines: lines.length };
+          } catch (error) {
+            errors.push({
+              line: 0,
+              message: `Unexpected error: ${error.message}`,
+              type: 'error',
+              content: error.message
+            });
+          }
+
+          return { errors, parsedData, totalLines: codeText.split('\n').length };
         };
 
         // Generate feedback message for errors
@@ -5944,19 +6150,23 @@ Extract similar data from the article I provide and format it EXACTLY like the e
 
           const examples = generateCodeExamples();
 
-          let feedback = `The data you provided has ${codeViewErrors.length} error(s). Please fix them and try again.\n\n**ERRORS FOUND:**\n\n`;
+          let feedback = `The JavaScript code you provided has ${codeViewErrors.length} error(s). Please fix them and try again.\n\n**ERRORS FOUND:**\n\n`;
 
           codeViewErrors.forEach((error, idx) => {
-            feedback += `${idx + 1}. Line ${error.line}: ${error.message}\n`;
-            feedback += `   Content: ${error.content}\n\n`;
+            feedback += `${idx + 1}. ${error.message}\n`;
+            if (error.content) {
+              feedback += `   Details: ${error.content}\n`;
+            }
+            feedback += `\n`;
           });
 
           feedback += `\n**REMINDER - CORRECT FORMAT:**\n\n${examples}\n\n`;
           feedback += `**WHAT TO DO:**\n`;
           feedback += `1. Copy this feedback\n`;
-          feedback += `2. Paste it to Claude/AI along with your original request\n`;
-          feedback += `3. Claude will fix the errors\n`;
-          feedback += `4. Copy the corrected data and paste it back here`;
+          feedback += `2. Paste it to Claude/AI along with your original code\n`;
+          feedback += `3. Claude will fix the errors and return corrected JavaScript code\n`;
+          feedback += `4. Copy the corrected code and paste it back here\n\n`;
+          feedback += `**IMPORTANT:** Make sure the code is valid JavaScript with proper syntax (commas, quotes, braces).`;
 
           return feedback;
         };
@@ -5975,7 +6185,7 @@ Extract similar data from the article I provide and format it EXACTLY like the e
         // Handle "Validate & Add Data" button click
         const handleValidateCodeView = () => {
           if (!codeViewText.trim()) {
-            alert('Please paste the data from Claude first.');
+            alert('Please paste the JavaScript code from Claude first.');
             return;
           }
 
@@ -5984,102 +6194,69 @@ Extract similar data from the article I provide and format it EXACTLY like the e
 
           if (result.errors.length > 0) {
             setCodeViewErrors(result.errors);
-            alert(`Found ${result.errors.length} error(s) in the data. Please review and fix them.`);
+            alert(`Found ${result.errors.length} error(s) in the code. Please review and fix them.`);
           } else {
             // Data is valid, add it to the dataset
-            const selectedStudyId = inputValues.selectedStudyId || studyIds[0];
-            const studyVars = variables[selectedStudyId] ? [...variables[selectedStudyId]] : [];
+            const newVariables = { ...variables };
+            let totalVariablesAdded = 0;
+            const newStudiesAdded = [];
 
-            result.validLines.forEach((parts) => {
-              const label = parts[0];
-              let value = {};
+            // Process each study in the parsed data
+            Object.entries(result.parsedData).forEach(([studyName, studyVariables]) => {
+              // Add study to studyIds if it doesn't exist
+              if (!studyIds.includes(studyName)) {
+                setStudyIds([...studyIds, studyName]);
+                newStudiesAdded.push(studyName);
 
-              if (importVariableType === 'dichotomous') {
-                if (importArmType === 'double') {
-                  value = {
-                    intervention: parts[1] || '',
-                    interventionTotal: parts[2] || '',
-                    comparisonTotal: parts[3] || '',
-                    comparison: parts[4] || '',
-                  };
-                } else {
-                  value = {
-                    events: parts[1] || '',
-                    total: parts[2] || '',
-                  };
-                }
-              } else if (importVariableType === 'continuous') {
-                if (importArmType === 'double') {
-                  value = {
-                    intervention: {
-                      mean: parts[1] || '',
-                      sd: parts[2] || '',
-                    },
-                    comparison: {
-                      mean: parts[4] || '',
-                      sd: parts[5] || '',
-                    },
-                    interventionTotal: parts[3] || '',
-                    comparisonTotal: parts[6] || '',
-                  };
-                } else {
-                  value = {
-                    mean: parts[1] || '',
-                    sd: parts[2] || '',
-                    total: parts[3] || '',
-                  };
-                }
-              } else if (importVariableType === 'text') {
-                if (importArmType === 'double') {
-                  value = {
-                    intervention: parts[1] || '',
-                    interventionTotal: parts[2] || '',
-                    comparisonTotal: parts[3] || '',
-                    comparison: parts[4] || '',
-                  };
-                } else {
-                  value = parts[1] || '';
-                }
+                // Also update inputValues.studyIdInput
+                setInputValues(prev => ({
+                  ...prev,
+                  studyIdInput: [...studyIds, studyName].join('\n')
+                }));
               }
 
-              const newVariable = {
-                id: generateUniqueId(),
-                label,
-                type: importVariableType,
-                value,
-                isSinglePlaceholder: false,
-                armType: importArmType,
-              };
+              // Get existing variables for this study or create empty array
+              const existingVars = newVariables[studyName] ? [...newVariables[studyName]] : [];
 
-              // Add interventionName for Network mode
-              if (groupType === 'network') {
-                if (selectedOption === 'baseline') {
-                  newVariable.interventionName = 'baseline';
-                } else if (selectedOption === 'outcomes') {
-                  newVariable.interventionName = picoInterventionName.trim() || 'intervention';
+              // Add or update each variable
+              studyVariables.forEach((variable) => {
+                // Check if variable with same label already exists
+                const existingIndex = existingVars.findIndex((v) => v.label === variable.label);
+
+                if (existingIndex !== -1) {
+                  // Update existing variable
+                  existingVars[existingIndex] = variable;
+                } else {
+                  // Add new variable
+                  existingVars.push(variable);
+                  totalVariablesAdded++;
                 }
+              });
+
+              newVariables[studyName] = existingVars;
+
+              // Update variablesOrder
+              setVariablesOrder((prevOrder) => {
+                const newOrder = { ...prevOrder };
+                newOrder[studyName] = existingVars.map((v) => v.id);
+                return newOrder;
+              });
+            });
+
+            // Update variables state
+            setVariables(newVariables);
+
+            // Success message
+            let message = `Successfully added ${totalVariablesAdded} variable(s)`;
+            if (newStudiesAdded.length > 0) {
+              message += ` across ${Object.keys(result.parsedData).length} study(ies)`;
+              if (newStudiesAdded.length > 0) {
+                message += `\n\nNew studies added: ${newStudiesAdded.join(', ')}`;
               }
+            }
+            message += '!';
 
-              const existingIndex = studyVars.findIndex((v) => v.label === label);
-              if (existingIndex !== -1) {
-                studyVars[existingIndex] = newVariable;
-              } else {
-                studyVars.push(newVariable);
-              }
-            });
-
-            setVariables({
-              ...variables,
-              [selectedStudyId]: studyVars,
-            });
-
-            setVariablesOrder((prevOrder) => {
-              const newOrder = { ...prevOrder };
-              newOrder[selectedStudyId] = studyVars.map((v) => v.id);
-              return newOrder;
-            });
-
-            alert(`Successfully added ${result.validLines.length} variable(s)!`);
+            alert(message);
 
             // Reset code view
             setCodeViewText('');
@@ -7971,7 +8148,7 @@ Extract similar data from the article I provide and format it EXACTLY like the e
                         </svg>
                         AI-Assisted Data Extraction
                       </h3>
-                      <p className="text-sm text-gray-400 mb-6">Use Claude or any AI to extract data from articles in the correct format</p>
+                      <p className="text-sm text-gray-400 mb-6">Use Claude to extract data from articles and return it as JavaScript code</p>
 
                       {/* Intervention Name for Network Mode (only for outcomes) */}
                       {groupType === 'network' && selectedOption === 'outcomes' && (
@@ -8047,8 +8224,22 @@ Extract similar data from the article I provide and format it EXACTLY like the e
                               setCodeViewValidationResult(null);
                             }
                           }}
-                          rows={12}
-                          placeholder="Paste the data extracted by Claude here...&#10;&#10;Example:&#10;Mortality | 15 | 100 | 100 | 25&#10;Recovery | 75 | 100 | 100 | 60"
+                          rows={16}
+                          placeholder={`Paste the JavaScript code from Claude here...
+
+Example:
+const ${selectedOption === 'baseline' ? 'baselineVariables' : 'outcomesVariables'} = {
+  "Study Name 2024": [
+    {
+      id: 1234567890.1234,
+      label: "Age",
+      type: "continuous",
+      value: { mean: "65.5", sd: "12.3", total: "100" },
+      isSinglePlaceholder: false,
+      armType: "single"
+    }
+  ]
+};`}
                           className="w-full p-3 bg-gray-800 border border-cyan-500/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-gray-100 font-mono text-sm"
                         />
                         {codeViewValidationResult && codeViewValidationResult.errors.length === 0 && (
@@ -8105,12 +8296,21 @@ Extract similar data from the article I provide and format it EXACTLY like the e
                       <div className="mt-4 p-4 bg-blue-900/20 border border-blue-500/30 rounded-lg">
                         <h5 className="font-semibold text-blue-300 mb-2">How it works:</h5>
                         <ol className="text-sm text-gray-300 space-y-1 list-decimal list-inside">
-                          <li>Click "Copy Prompt for Claude" to copy the format instructions and examples</li>
+                          <li>Click "Copy Prompt for Claude" to copy the format instructions and JavaScript examples</li>
                           <li>Paste it to Claude and provide your article/PDF data</li>
-                          <li>Copy the extracted data from Claude and paste it in the textarea above</li>
-                          <li>Click "Validate & Add Data" to check and import the data</li>
-                          <li>If there are errors, click "Copy Feedback to Claude" and repeat until all data is correct</li>
+                          <li>Claude will return JavaScript code - copy it and paste it in the textarea above</li>
+                          <li>Click "Validate & Add Data" to parse and import the data</li>
+                          <li>If there are errors, click "Copy Feedback to Claude" to get corrections</li>
                         </ol>
+                        <div className="mt-3 p-3 bg-cyan-900/20 border border-cyan-500/30 rounded">
+                          <p className="text-xs text-cyan-200 font-semibold mb-1">✨ What makes this powerful:</p>
+                          <ul className="text-xs text-gray-300 space-y-1 ml-4 list-disc">
+                            <li>Returns data in the <strong>exact same format</strong> used by the app's backup/localStorage</li>
+                            <li>Can extract data for <strong>multiple studies at once</strong></li>
+                            <li>Automatically creates new studies if they don't exist</li>
+                            <li>Differentiates between <code className="bg-gray-800 px-1 rounded">baselineVariables</code> and <code className="bg-gray-800 px-1 rounded">outcomesVariables</code></li>
+                          </ul>
+                        </div>
                       </div>
                     </div>
                   )}
