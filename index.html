@@ -6359,11 +6359,13 @@ Extract ALL data from the article(s) I provide and return BOTH baselineVariables
             });
           }
 
-          if (variable.type !== importVariableType) {
+          // Validate type - accept any of the three valid types (dichotomous, continuous, text)
+          const validTypes = ['dichotomous', 'continuous', 'text'];
+          if (!validTypes.includes(variable.type)) {
             errors.push({
               line: varNum,
-              message: `Variable ${varNum} "${variable.label}" in "${studyName}" (${varCategory}) has type "${variable.type}" but expected "${importVariableType}"`,
-              type: 'wrong_type',
+              message: `Variable ${varNum} "${variable.label}" in "${studyName}" (${varCategory}) has invalid type "${variable.type}". Must be one of: ${validTypes.join(', ')}`,
+              type: 'invalid_type',
               content: variable.label
             });
           }
