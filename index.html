@@ -4384,6 +4384,12 @@
         const [picoStudyMappings, setPicoStudyMappings] = useState({});
         const [picoInterventionName, setPicoInterventionName] = useState("");
 
+        // New state variables for AI Code View mode
+        const [isCodeViewMode, setIsCodeViewMode] = useState(false);
+        const [codeViewText, setCodeViewText] = useState("");
+        const [codeViewErrors, setCodeViewErrors] = useState([]);
+        const [codeViewValidationResult, setCodeViewValidationResult] = useState(null);
+
         const variables =
           selectedOption === "baseline" ? baselineVariables : outcomesVariables;
         const setVariables =
@@ -5665,6 +5671,438 @@
             console.error(error);
           }
         };
+
+        // ============================================
+        // AI CODE VIEW MODE FUNCTIONS
+        // ============================================
+
+        // Generate examples based on current mode and variable type
+        const generateCodeExamples = () => {
+          const isNetwork = groupType === 'network';
+          const isDoubleArm = groupType === 'intervention_comparison' && importArmType === 'double';
+          const isSingleArm = !isDoubleArm;
+
+          let examples = '';
+
+          if (importVariableType === 'dichotomous') {
+            if (isDoubleArm) {
+              examples = `# Double-Arm Dichotomous Data Format:
+# LABEL | INTERVENTION_EVENTS | INTERVENTION_TOTAL | COMPARISON_TOTAL | COMPARISON_EVENTS
+
+Mortality | 15 | 100 | 100 | 25
+Recovery | 75 | 100 | 100 | 60
+Adverse Events | 8 | 100 | 100 | 12`;
+            } else {
+              examples = `# Single-Arm Dichotomous Data Format:
+# LABEL | EVENTS | TOTAL
+
+Age > 65 | 45 | 100
+Male gender | 60 | 100
+Smoker | 30 | 100`;
+            }
+          } else if (importVariableType === 'continuous') {
+            if (isDoubleArm) {
+              examples = `# Double-Arm Continuous Data Format:
+# LABEL | INTERVENTION_MEAN | INTERVENTION_SD | INTERVENTION_TOTAL | COMPARISON_MEAN | COMPARISON_SD | COMPARISON_TOTAL
+
+Pain Score | 3.2 | 1.5 | 100 | 5.8 | 1.8 | 100
+Quality of Life | 75.5 | 10.2 | 100 | 68.3 | 12.1 | 100
+Hospital Stay (days) | 4.5 | 2.1 | 100 | 6.2 | 2.8 | 100`;
+            } else {
+              examples = `# Single-Arm Continuous Data Format:
+# LABEL | MEAN | SD | TOTAL
+
+Age (years) | 65.5 | 12.3 | 100
+BMI | 28.4 | 5.2 | 100
+Blood Pressure (mmHg) | 130.2 | 15.8 | 100`;
+            }
+          } else if (importVariableType === 'text') {
+            if (isDoubleArm) {
+              examples = `# Double-Arm Text Data Format:
+# LABEL | INTERVENTION_VALUE | INTERVENTION_TOTAL | COMPARISON_TOTAL | COMPARISON_VALUE
+
+Study Design | Randomized controlled trial | 100 | 100 | Randomized controlled trial
+Setting | Hospital | 100 | 100 | Hospital
+Country | USA | 100 | 100 | USA`;
+            } else {
+              examples = `# Single-Arm Text Data Format:
+# LABEL | VALUE
+
+Study Design | Randomized controlled trial
+Setting | Hospital
+Country | USA
+Institution | University Medical Center`;
+            }
+          }
+
+          if (isNetwork && selectedOption === 'outcomes') {
+            examples += `\n\n# NOTE: For Network mode outcomes, this data will be associated with intervention: "${picoInterventionName || '[Enter intervention name]'}"`;
+          } else if (isNetwork && selectedOption === 'baseline') {
+            examples += `\n\n# NOTE: For Network mode baseline, this data will be associated with intervention: "baseline"`;
+          }
+
+          return examples;
+        };
+
+        // Convert existing variables to code format
+        const convertExistingDataToCode = () => {
+          const selectedStudyId = inputValues.selectedStudyId || studyIds[0];
+          const studyVars = variables[selectedStudyId] || [];
+
+          if (studyVars.length === 0) {
+            return '# No existing data to display\n# Add some data first or use the examples above';
+          }
+
+          let code = '# Existing Data:\n\n';
+
+          studyVars.forEach(variable => {
+            if (variable.type !== importVariableType) return;
+            if (variable.armType !== importArmType) return;
+
+            const label = variable.label;
+
+            if (variable.type === 'dichotomous') {
+              if (variable.armType === 'double') {
+                const intervention = variable.value.intervention || '';
+                const interventionTotal = variable.value.interventionTotal || '';
+                const comparisonTotal = variable.value.comparisonTotal || '';
+                const comparison = variable.value.comparison || '';
+                code += `${label} | ${intervention} | ${interventionTotal} | ${comparisonTotal} | ${comparison}\n`;
+              } else {
+                const events = variable.value.events || '';
+                const total = variable.value.total || '';
+                code += `${label} | ${events} | ${total}\n`;
+              }
+            } else if (variable.type === 'continuous') {
+              if (variable.armType === 'double') {
+                const intMean = variable.value.intervention?.mean || '';
+                const intSd = variable.value.intervention?.sd || '';
+                const intTotal = variable.value.interventionTotal || '';
+                const compMean = variable.value.comparison?.mean || '';
+                const compSd = variable.value.comparison?.sd || '';
+                const compTotal = variable.value.comparisonTotal || '';
+                code += `${label} | ${intMean} | ${intSd} | ${intTotal} | ${compMean} | ${compSd} | ${compTotal}\n`;
+              } else {
+                const mean = variable.value.mean || '';
+                const sd = variable.value.sd || '';
+                const total = variable.value.total || '';
+                code += `${label} | ${mean} | ${sd} | ${total}\n`;
+              }
+            } else if (variable.type === 'text') {
+              if (variable.armType === 'double') {
+                const intervention = variable.value.intervention || '';
+                const interventionTotal = variable.value.interventionTotal || '';
+                const comparisonTotal = variable.value.comparisonTotal || '';
+                const comparison = variable.value.comparison || '';
+                code += `${label} | ${intervention} | ${interventionTotal} | ${comparisonTotal} | ${comparison}\n`;
+              } else {
+                const value = variable.value || '';
+                code += `${label} | ${value}\n`;
+              }
+            }
+          });
+
+          return code;
+        };
+
+        // Generate full prompt with examples and existing data
+        const generatePromptForClaude = () => {
+          const examples = generateCodeExamples();
+          const existingData = convertExistingDataToCode();
+
+          const isDoubleArm = groupType === 'intervention_comparison' && importArmType === 'double';
+          const varTypeLabel = importVariableType.charAt(0).toUpperCase() + importVariableType.slice(1);
+          const armTypeLabel = isDoubleArm ? 'Double-Arm' : 'Single-Arm';
+
+          let prompt = `I need you to extract ${armTypeLabel} ${varTypeLabel} data from a research article and format it exactly as shown below.
+
+**IMPORTANT FORMATTING RULES:**
+1. Use the pipe character | to separate columns
+2. Each line represents one variable
+3. Lines starting with # are comments and should be ignored
+4. Keep the exact column order as shown in the format
+5. If a value is missing or not reported, leave it empty but keep the pipe separators
+6. Do NOT include column headers in your output
+7. Make sure all numeric values are properly extracted
+
+**FORMAT TO USE:**
+
+${examples}
+
+**EXISTING DATA (if any):**
+
+${existingData}
+
+**YOUR TASK:**
+Extract similar data from the article I provide and format it EXACTLY like the examples above. Return ONLY the data lines (no headers, no explanations), with each line in the format shown.`;
+
+          return prompt;
+        };
+
+        // Validate and parse code pasted from AI
+        const validateAndParseCode = (codeText) => {
+          const errors = [];
+          const validLines = [];
+          const lines = codeText.split('\n');
+
+          const isDoubleArm = groupType === 'intervention_comparison' && importArmType === 'double';
+
+          lines.forEach((line, index) => {
+            const lineNum = index + 1;
+            const trimmedLine = line.trim();
+
+            // Skip empty lines and comments
+            if (!trimmedLine || trimmedLine.startsWith('#')) {
+              return;
+            }
+
+            // Split by pipe
+            const parts = trimmedLine.split('|').map(p => p.trim());
+
+            // Validate based on variable type and arm type
+            let expectedColumns = 0;
+            let columnNames = [];
+
+            if (importVariableType === 'dichotomous') {
+              if (isDoubleArm) {
+                expectedColumns = 5;
+                columnNames = ['LABEL', 'INTERVENTION_EVENTS', 'INTERVENTION_TOTAL', 'COMPARISON_TOTAL', 'COMPARISON_EVENTS'];
+              } else {
+                expectedColumns = 3;
+                columnNames = ['LABEL', 'EVENTS', 'TOTAL'];
+              }
+            } else if (importVariableType === 'continuous') {
+              if (isDoubleArm) {
+                expectedColumns = 7;
+                columnNames = ['LABEL', 'INTERVENTION_MEAN', 'INTERVENTION_SD', 'INTERVENTION_TOTAL', 'COMPARISON_MEAN', 'COMPARISON_SD', 'COMPARISON_TOTAL'];
+              } else {
+                expectedColumns = 4;
+                columnNames = ['LABEL', 'MEAN', 'SD', 'TOTAL'];
+              }
+            } else if (importVariableType === 'text') {
+              if (isDoubleArm) {
+                expectedColumns = 5;
+                columnNames = ['LABEL', 'INTERVENTION_VALUE', 'INTERVENTION_TOTAL', 'COMPARISON_TOTAL', 'COMPARISON_VALUE'];
+              } else {
+                expectedColumns = 2;
+                columnNames = ['LABEL', 'VALUE'];
+              }
+            }
+
+            // Check column count
+            if (parts.length !== expectedColumns) {
+              errors.push({
+                line: lineNum,
+                message: `Expected ${expectedColumns} columns (${columnNames.join(', ')}) but found ${parts.length}`,
+                type: 'column_count',
+                content: trimmedLine
+              });
+              return;
+            }
+
+            // Check label is not empty
+            if (!parts[0]) {
+              errors.push({
+                line: lineNum,
+                message: 'Label cannot be empty',
+                type: 'empty_label',
+                content: trimmedLine
+              });
+              return;
+            }
+
+            // Validate numeric values for dichotomous and continuous
+            if (importVariableType === 'dichotomous' || importVariableType === 'continuous') {
+              const numericIndices = importVariableType === 'dichotomous'
+                ? (isDoubleArm ? [1, 2, 3, 4] : [1, 2])
+                : (isDoubleArm ? [1, 2, 3, 4, 5, 6] : [1, 2, 3]);
+
+              numericIndices.forEach(idx => {
+                const value = parts[idx];
+                if (value && isNaN(Number(value))) {
+                  errors.push({
+                    line: lineNum,
+                    message: `Column "${columnNames[idx]}" must be numeric, got: "${value}"`,
+                    type: 'invalid_number',
+                    content: trimmedLine
+                  });
+                }
+              });
+            }
+
+            if (errors.filter(e => e.line === lineNum).length === 0) {
+              validLines.push(parts);
+            }
+          });
+
+          return { errors, validLines, totalLines: lines.length };
+        };
+
+        // Generate feedback message for errors
+        const generateErrorFeedback = () => {
+          if (codeViewErrors.length === 0) return '';
+
+          const examples = generateCodeExamples();
+
+          let feedback = `The data you provided has ${codeViewErrors.length} error(s). Please fix them and try again.\n\n**ERRORS FOUND:**\n\n`;
+
+          codeViewErrors.forEach((error, idx) => {
+            feedback += `${idx + 1}. Line ${error.line}: ${error.message}\n`;
+            feedback += `   Content: ${error.content}\n\n`;
+          });
+
+          feedback += `\n**REMINDER - CORRECT FORMAT:**\n\n${examples}\n\n`;
+          feedback += `**WHAT TO DO:**\n`;
+          feedback += `1. Copy this feedback\n`;
+          feedback += `2. Paste it to Claude/AI along with your original request\n`;
+          feedback += `3. Claude will fix the errors\n`;
+          feedback += `4. Copy the corrected data and paste it back here`;
+
+          return feedback;
+        };
+
+        // Handle "Copy to Claude" button click
+        const handleCopyPromptToClaude = () => {
+          const prompt = generatePromptForClaude();
+          navigator.clipboard.writeText(prompt).then(() => {
+            alert('Prompt copied to clipboard! Now paste it to Claude and provide your article/data.');
+          }).catch(err => {
+            console.error('Failed to copy:', err);
+            alert('Failed to copy to clipboard. Please try again.');
+          });
+        };
+
+        // Handle "Validate & Add Data" button click
+        const handleValidateCodeView = () => {
+          if (!codeViewText.trim()) {
+            alert('Please paste the data from Claude first.');
+            return;
+          }
+
+          const result = validateAndParseCode(codeViewText);
+          setCodeViewValidationResult(result);
+
+          if (result.errors.length > 0) {
+            setCodeViewErrors(result.errors);
+            alert(`Found ${result.errors.length} error(s) in the data. Please review and fix them.`);
+          } else {
+            // Data is valid, add it to the dataset
+            const selectedStudyId = inputValues.selectedStudyId || studyIds[0];
+            const studyVars = variables[selectedStudyId] ? [...variables[selectedStudyId]] : [];
+
+            result.validLines.forEach((parts) => {
+              const label = parts[0];
+              let value = {};
+
+              if (importVariableType === 'dichotomous') {
+                if (importArmType === 'double') {
+                  value = {
+                    intervention: parts[1] || '',
+                    interventionTotal: parts[2] || '',
+                    comparisonTotal: parts[3] || '',
+                    comparison: parts[4] || '',
+                  };
+                } else {
+                  value = {
+                    events: parts[1] || '',
+                    total: parts[2] || '',
+                  };
+                }
+              } else if (importVariableType === 'continuous') {
+                if (importArmType === 'double') {
+                  value = {
+                    intervention: {
+                      mean: parts[1] || '',
+                      sd: parts[2] || '',
+                    },
+                    comparison: {
+                      mean: parts[4] || '',
+                      sd: parts[5] || '',
+                    },
+                    interventionTotal: parts[3] || '',
+                    comparisonTotal: parts[6] || '',
+                  };
+                } else {
+                  value = {
+                    mean: parts[1] || '',
+                    sd: parts[2] || '',
+                    total: parts[3] || '',
+                  };
+                }
+              } else if (importVariableType === 'text') {
+                if (importArmType === 'double') {
+                  value = {
+                    intervention: parts[1] || '',
+                    interventionTotal: parts[2] || '',
+                    comparisonTotal: parts[3] || '',
+                    comparison: parts[4] || '',
+                  };
+                } else {
+                  value = parts[1] || '';
+                }
+              }
+
+              const newVariable = {
+                id: generateUniqueId(),
+                label,
+                type: importVariableType,
+                value,
+                isSinglePlaceholder: false,
+                armType: importArmType,
+              };
+
+              // Add interventionName for Network mode
+              if (groupType === 'network') {
+                if (selectedOption === 'baseline') {
+                  newVariable.interventionName = 'baseline';
+                } else if (selectedOption === 'outcomes') {
+                  newVariable.interventionName = picoInterventionName.trim() || 'intervention';
+                }
+              }
+
+              const existingIndex = studyVars.findIndex((v) => v.label === label);
+              if (existingIndex !== -1) {
+                studyVars[existingIndex] = newVariable;
+              } else {
+                studyVars.push(newVariable);
+              }
+            });
+
+            setVariables({
+              ...variables,
+              [selectedStudyId]: studyVars,
+            });
+
+            setVariablesOrder((prevOrder) => {
+              const newOrder = { ...prevOrder };
+              newOrder[selectedStudyId] = studyVars.map((v) => v.id);
+              return newOrder;
+            });
+
+            alert(`Successfully added ${result.validLines.length} variable(s)!`);
+
+            // Reset code view
+            setCodeViewText('');
+            setCodeViewErrors([]);
+            setCodeViewValidationResult(null);
+            closeImportModal();
+          }
+        };
+
+        // Handle "Copy Feedback to Claude" button click
+        const handleCopyFeedbackToClaude = () => {
+          const feedback = generateErrorFeedback();
+          navigator.clipboard.writeText(feedback).then(() => {
+            alert('Feedback copied to clipboard! Now paste it to Claude to get corrected data.');
+          }).catch(err => {
+            console.error('Failed to copy:', err);
+            alert('Failed to copy to clipboard. Please try again.');
+          });
+        };
+
+        // ============================================
+        // END OF AI CODE VIEW MODE FUNCTIONS
+        // ============================================
 
         const handleAddDataset = () => {
           let dataLines = [];
@@ -7284,6 +7722,33 @@
                     </button>
                   </div>
 
+                  {/* AI Code View Button */}
+                  <div className="mt-4">
+                    <button
+                      onClick={() => {
+                        setIsCodeViewMode(!isCodeViewMode);
+                        if (!isCodeViewMode) {
+                          // When entering Code View mode, generate initial examples
+                          const examples = generateCodeExamples();
+                          const existingData = convertExistingDataToCode();
+                          setCodeViewText('');
+                          setCodeViewErrors([]);
+                          setCodeViewValidationResult(null);
+                        }
+                      }}
+                      className={`w-full py-3 px-4 rounded-lg font-semibold transition duration-300 flex items-center justify-center gap-2 ${
+                        isCodeViewMode
+                          ? "bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white shadow-lg"
+                          : "bg-gray-700 hover:bg-gray-600 text-gray-100"
+                      }`}
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                      </svg>
+                      {isCodeViewMode ? "Exit AI Code View" : "AI Code View (Extract with Claude)"}
+                    </button>
+                  </div>
+
                   {/*
         NEW FIELDS:
         For double-arm, user can place population sizes
@@ -7497,8 +7962,161 @@
                     </div>
                   )}
 
+                  {/* AI Code View Interface */}
+                  {isCodeViewMode && (
+                    <div className="mt-6 p-6 bg-gradient-to-br from-cyan-900/30 to-blue-900/30 rounded-lg border border-cyan-500/40 shadow-xl">
+                      <h3 className="text-lg font-bold text-cyan-300 mb-2 flex items-center gap-2">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                        </svg>
+                        AI-Assisted Data Extraction
+                      </h3>
+                      <p className="text-sm text-gray-400 mb-6">Use Claude or any AI to extract data from articles in the correct format</p>
+
+                      {/* Intervention Name for Network Mode (only for outcomes) */}
+                      {groupType === 'network' && selectedOption === 'outcomes' && (
+                        <div className="mb-4 p-4 bg-orange-900/20 border border-orange-500/30 rounded-lg">
+                          <label className="block font-semibold mb-2 text-orange-300">
+                            <span className="text-red-400">⚠</span> Intervention Name <span className="text-red-400">*</span>
+                            <span className="text-sm text-gray-400 ml-2">(Required for Network mode outcomes)</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={picoInterventionName}
+                            onChange={(e) => setPicoInterventionName(e.target.value)}
+                            placeholder="Enter intervention name (e.g., Drug A, Placebo, etc.)"
+                            className="w-full p-3 bg-gray-700 border border-orange-500/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-100"
+                          />
+                        </div>
+                      )}
+
+                      {/* Step 1: View Examples and Copy Prompt */}
+                      <div className="mb-6">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="font-semibold text-cyan-200 flex items-center gap-2">
+                            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-cyan-600 text-white text-sm">1</span>
+                            Data Format & Examples
+                          </h4>
+                          <button
+                            onClick={handleCopyPromptToClaude}
+                            className="py-2 px-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold rounded-lg transition duration-300 flex items-center gap-2 shadow-lg"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                            Copy Prompt for Claude
+                          </button>
+                        </div>
+                        <div className="bg-gray-900/60 p-4 rounded-lg border border-gray-700 max-h-64 overflow-y-auto">
+                          <pre className="text-xs text-gray-300 whitespace-pre-wrap font-mono">
+                            {generateCodeExamples()}
+                            {'\n\n'}
+                            {convertExistingDataToCode()}
+                          </pre>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-2">
+                          💡 Click "Copy Prompt for Claude" to get a complete prompt with instructions. Then paste it to Claude along with your article/PDF data.
+                        </p>
+                      </div>
+
+                      {/* Step 2: Paste Data from AI */}
+                      <div className="mb-6">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="font-semibold text-cyan-200 flex items-center gap-2">
+                            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-cyan-600 text-white text-sm">2</span>
+                            Paste Extracted Data from AI
+                          </h4>
+                          <button
+                            onClick={handleValidateCodeView}
+                            disabled={!codeViewText.trim()}
+                            className="py-2 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition duration-300 flex items-center gap-2 shadow-lg"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Validate & Add Data
+                          </button>
+                        </div>
+                        <textarea
+                          value={codeViewText}
+                          onChange={(e) => {
+                            setCodeViewText(e.target.value);
+                            // Clear errors when user starts typing
+                            if (codeViewErrors.length > 0) {
+                              setCodeViewErrors([]);
+                              setCodeViewValidationResult(null);
+                            }
+                          }}
+                          rows={12}
+                          placeholder="Paste the data extracted by Claude here...&#10;&#10;Example:&#10;Mortality | 15 | 100 | 100 | 25&#10;Recovery | 75 | 100 | 100 | 60"
+                          className="w-full p-3 bg-gray-800 border border-cyan-500/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-gray-100 font-mono text-sm"
+                        />
+                        {codeViewValidationResult && codeViewValidationResult.errors.length === 0 && (
+                          <p className="text-green-400 text-sm mt-2 flex items-center gap-2">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            All data is valid! Click "Validate & Add Data" to import.
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Step 3: Show Errors if any */}
+                      {codeViewErrors.length > 0 && (
+                        <div className="mb-6">
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="font-semibold text-red-300 flex items-center gap-2">
+                              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-red-600 text-white text-sm">!</span>
+                              Errors Found ({codeViewErrors.length})
+                            </h4>
+                            <button
+                              onClick={handleCopyFeedbackToClaude}
+                              className="py-2 px-4 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white font-semibold rounded-lg transition duration-300 flex items-center gap-2 shadow-lg"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                              </svg>
+                              Copy Feedback to Claude
+                            </button>
+                          </div>
+                          <div className="bg-red-900/20 border border-red-500/40 rounded-lg p-4 max-h-80 overflow-y-auto">
+                            {codeViewErrors.map((error, idx) => (
+                              <div key={idx} className="mb-4 last:mb-0">
+                                <div className="flex items-start gap-2 mb-1">
+                                  <span className="text-red-400 font-mono text-sm">Line {error.line}:</span>
+                                  <span className="text-red-300 text-sm flex-1">{error.message}</span>
+                                </div>
+                                <div className="bg-gray-900/60 p-2 rounded border border-red-500/30">
+                                  <code className="text-xs text-gray-300 font-mono">{error.content}</code>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          <p className="text-xs text-orange-300 mt-3 flex items-start gap-2">
+                            <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span>Click "Copy Feedback to Claude" to get detailed error messages. Paste it back to Claude, and it will fix the errors for you.</span>
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Instructions */}
+                      <div className="mt-4 p-4 bg-blue-900/20 border border-blue-500/30 rounded-lg">
+                        <h5 className="font-semibold text-blue-300 mb-2">How it works:</h5>
+                        <ol className="text-sm text-gray-300 space-y-1 list-decimal list-inside">
+                          <li>Click "Copy Prompt for Claude" to copy the format instructions and examples</li>
+                          <li>Paste it to Claude and provide your article/PDF data</li>
+                          <li>Copy the extracted data from Claude and paste it in the textarea above</li>
+                          <li>Click "Validate & Add Data" to check and import the data</li>
+                          <li>If there are errors, click "Copy Feedback to Claude" and repeat until all data is correct</li>
+                        </ol>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Text/Paste area for the user's tab-separated data */}
-                  {!isPicoMode && (
+                  {!isPicoMode && !isCodeViewMode && (
                   <div className="mt-4">
                     <div className="flex items-center justify-between">
                       <label className="block font-semibold text-gray-300">
