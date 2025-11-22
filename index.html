@@ -6212,7 +6212,7 @@ Extract ALL data from the article(s) I provide and return BOTH baselineVariables
             }
 
             // Extract outcomesVariables
-            const outcomesMatch = cleanCode.match(/(?:const|let|var)\s+outcomesVariables\s*=\s*(\{[\s\S]*?\});?\s*$/);
+            const outcomesMatch = cleanCode.match(/(?:const|let|var)\s+outcomesVariables\s*=\s*(\{[\s\S]*\});?/);
             if (outcomesMatch) {
               try {
                 outcomesData = new Function('return ' + outcomesMatch[1])();
