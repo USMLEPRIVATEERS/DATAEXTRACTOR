@@ -5680,6 +5680,24 @@
         const getAllExistingLabels = () => {
           const labels = new Set();
 
+          // Add recommended labels first
+          const recommendedLabels = [
+            "Population",
+            "Intervention #1",
+            "Intervention #2/Control group",
+            "All outcomes",
+            "Primary outcomes",
+            "Secondary outcomes",
+            "Outcome assessment dates",
+            "Timing (Start to End Date)",
+            "Type of Study/Study design",
+            "Setting (Ambulatory, Inpatient...)",
+            "Institution and department",
+            "Country",
+          ];
+
+          recommendedLabels.forEach(label => labels.add(label));
+
           studyIds.forEach(studyId => {
             // Get labels from both baseline and outcomes variables
             const baselineVars = baselineVariables[studyId] || [];
