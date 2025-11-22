@@ -5702,13 +5702,15 @@
           // Get the currently selected study name for examples
           const exampleStudyName = inputValues.selectedStudyId || studyIds[0] || 'Study Name 2024';
 
+          // Always show examples of ALL THREE variable types (dichotomous, continuous, text)
+          // Use recommended labels from suggestedBaselineLabels
           let examples = '';
 
-          if (importVariableType === 'dichotomous') {
-            if (isDoubleArm) {
-              examples = `// Double-Arm Dichotomous Data Format:
+          if (isDoubleArm) {
+            examples = `// Double-Arm Data Format Examples (showing ALL variable types):
 const ${varTypeKey} = {
   "${exampleStudyName}": [
+    // DICHOTOMOUS variable example:
     {
       id: ${Date.now() + Math.random()},
       label: "${varCategory === 'baseline' ? 'Age > 65' : 'Mortality'}",
@@ -5722,57 +5724,9 @@ const ${varTypeKey} = {
       isSinglePlaceholder: false,
       armType: "double"${isNetwork ? `,\n      interventionName: "${varCategory === 'baseline' ? 'baseline' : (picoInterventionName || 'intervention')}"` : ''}
     },
+    // CONTINUOUS variable example:
     {
       id: ${Date.now() + Math.random() + 1},
-      label: "${varCategory === 'baseline' ? 'Male gender' : 'Recovery'}",
-      type: "dichotomous",
-      value: {
-        intervention: "${varCategory === 'baseline' ? '60' : '75'}",
-        comparison: "${varCategory === 'baseline' ? '55' : '60'}",
-        interventionTotal: "100",
-        comparisonTotal: "100"
-      },
-      isSinglePlaceholder: false,
-      armType: "double"${isNetwork ? `,\n      interventionName: "${varCategory === 'baseline' ? 'baseline' : (picoInterventionName || 'intervention')}"` : ''}
-    }
-  ]
-};`;
-            } else {
-              examples = `// Single-Arm Dichotomous Data Format:
-const ${varTypeKey} = {
-  "${exampleStudyName}": [
-    {
-      id: ${Date.now() + Math.random()},
-      label: "${varCategory === 'baseline' ? 'Age > 65' : 'Mortality'}",
-      type: "dichotomous",
-      value: {
-        events: "${varCategory === 'baseline' ? '45' : '15'}",
-        total: "100"
-      },
-      isSinglePlaceholder: false,
-      armType: "single"${isNetwork ? `,\n      interventionName: "${varCategory === 'baseline' ? 'baseline' : (picoInterventionName || 'intervention')}"` : ''}
-    },
-    {
-      id: ${Date.now() + Math.random() + 1},
-      label: "${varCategory === 'baseline' ? 'Male gender' : 'Recovery'}",
-      type: "dichotomous",
-      value: {
-        events: "${varCategory === 'baseline' ? '60' : '75'}",
-        total: "100"
-      },
-      isSinglePlaceholder: false,
-      armType: "single"${isNetwork ? `,\n      interventionName: "${varCategory === 'baseline' ? 'baseline' : (picoInterventionName || 'intervention')}"` : ''}
-    }
-  ]
-};`;
-            }
-          } else if (importVariableType === 'continuous') {
-            if (isDoubleArm) {
-              examples = `// Double-Arm Continuous Data Format:
-const ${varTypeKey} = {
-  "${exampleStudyName}": [
-    {
-      id: ${Date.now() + Math.random()},
       label: "${varCategory === 'baseline' ? 'Age (years)' : 'Pain Score'}",
       type: "continuous",
       value: {
@@ -5784,27 +5738,60 @@ const ${varTypeKey} = {
       isSinglePlaceholder: false,
       armType: "double"${isNetwork ? `,\n      interventionName: "${varCategory === 'baseline' ? 'baseline' : (picoInterventionName || 'intervention')}"` : ''}
     },
+    // TEXT variable example:
     {
-      id: ${Date.now() + Math.random() + 1},
-      label: "${varCategory === 'baseline' ? 'BMI' : 'Quality of Life'}",
-      type: "continuous",
+      id: ${Date.now() + Math.random() + 2},
+      label: "${varCategory === 'baseline' ? 'Population' : 'Primary outcomes'}",
+      type: "text",
       value: {
-        intervention: { mean: "${varCategory === 'baseline' ? '28.4' : '75.5'}", sd: "${varCategory === 'baseline' ? '5.2' : '10.2'}" },
-        comparison: { mean: "${varCategory === 'baseline' ? '27.9' : '68.3'}", sd: "${varCategory === 'baseline' ? '4.8' : '12.1'}" },
+        intervention: "${varCategory === 'baseline' ? 'Adults with hypertension' : 'Change in systolic blood pressure'}",
+        comparison: "${varCategory === 'baseline' ? 'Adults with hypertension' : 'Change in systolic blood pressure'}",
         interventionTotal: "100",
         comparisonTotal: "100"
       },
       isSinglePlaceholder: false,
       armType: "double"${isNetwork ? `,\n      interventionName: "${varCategory === 'baseline' ? 'baseline' : (picoInterventionName || 'intervention')}"` : ''}
+    },
+    // Additional examples using recommended labels:
+    {
+      id: ${Date.now() + Math.random() + 3},
+      label: "${varCategory === 'baseline' ? 'Country' : 'Recovery'}",
+      type: "${varCategory === 'baseline' ? 'text' : 'dichotomous'}",
+      value: ${varCategory === 'baseline' ? `{
+        intervention: "USA",
+        comparison: "USA",
+        interventionTotal: "100",
+        comparisonTotal: "100"
+      }` : `{
+        intervention: "75",
+        comparison: "60",
+        interventionTotal: "100",
+        comparisonTotal: "100"
+      }`},
+      isSinglePlaceholder: false,
+      armType: "double"${isNetwork ? `,\n      interventionName: "${varCategory === 'baseline' ? 'baseline' : (picoInterventionName || 'intervention')}"` : ''}
     }
   ]
 };`;
-            } else {
-              examples = `// Single-Arm Continuous Data Format:
+          } else {
+            examples = `// Single-Arm Data Format Examples (showing ALL variable types):
 const ${varTypeKey} = {
   "${exampleStudyName}": [
+    // DICHOTOMOUS variable example:
     {
       id: ${Date.now() + Math.random()},
+      label: "${varCategory === 'baseline' ? 'Age > 65' : 'Mortality'}",
+      type: "dichotomous",
+      value: {
+        events: "${varCategory === 'baseline' ? '45' : '15'}",
+        total: "100"
+      },
+      isSinglePlaceholder: false,
+      armType: "single"${isNetwork ? `,\n      interventionName: "${varCategory === 'baseline' ? 'baseline' : (picoInterventionName || 'intervention')}"` : ''}
+    },
+    // CONTINUOUS variable example:
+    {
+      id: ${Date.now() + Math.random() + 1},
       label: "${varCategory === 'baseline' ? 'Age (years)' : 'Pain Score'}",
       type: "continuous",
       value: {
@@ -5815,77 +5802,26 @@ const ${varTypeKey} = {
       isSinglePlaceholder: false,
       armType: "single"${isNetwork ? `,\n      interventionName: "${varCategory === 'baseline' ? 'baseline' : (picoInterventionName || 'intervention')}"` : ''}
     },
+    // TEXT variable example:
     {
-      id: ${Date.now() + Math.random() + 1},
-      label: "${varCategory === 'baseline' ? 'BMI' : 'Quality of Life'}",
-      type: "continuous",
-      value: {
-        mean: "${varCategory === 'baseline' ? '28.4' : '75.5'}",
-        sd: "${varCategory === 'baseline' ? '5.2' : '10.2'}",
-        total: "100"
-      },
-      isSinglePlaceholder: false,
+      id: ${Date.now() + Math.random() + 2},
+      label: "${varCategory === 'baseline' ? 'Population' : 'Primary outcomes'}",
+      type: "text",
+      value: "${varCategory === 'baseline' ? 'Adults with hypertension' : 'Change in systolic blood pressure'}",
+      isSinglePlaceholder: true,
+      armType: "single"${isNetwork ? `,\n      interventionName: "${varCategory === 'baseline' ? 'baseline' : (picoInterventionName || 'intervention')}"` : ''}
+    },
+    // Additional examples using recommended labels:
+    {
+      id: ${Date.now() + Math.random() + 3},
+      label: "${varCategory === 'baseline' ? 'Country' : 'Recovery'}",
+      type: "${varCategory === 'baseline' ? 'text' : 'dichotomous'}",
+      value: ${varCategory === 'baseline' ? '"USA"' : '{ events: "75", total: "100" }'},
+      isSinglePlaceholder: ${varCategory === 'baseline' ? 'true' : 'false'},
       armType: "single"${isNetwork ? `,\n      interventionName: "${varCategory === 'baseline' ? 'baseline' : (picoInterventionName || 'intervention')}"` : ''}
     }
   ]
 };`;
-            }
-          } else if (importVariableType === 'text') {
-            if (isDoubleArm) {
-              examples = `// Double-Arm Text Data Format:
-const ${varTypeKey} = {
-  "${exampleStudyName}": [
-    {
-      id: ${Date.now() + Math.random()},
-      label: "${varCategory === 'baseline' ? 'Study Design' : 'Primary Outcome'}",
-      type: "text",
-      value: {
-        intervention: "Randomized controlled trial",
-        comparison: "Randomized controlled trial",
-        interventionTotal: "100",
-        comparisonTotal: "100"
-      },
-      isSinglePlaceholder: false,
-      armType: "double"${isNetwork ? `,\n      interventionName: "${varCategory === 'baseline' ? 'baseline' : (picoInterventionName || 'intervention')}"` : ''}
-    },
-    {
-      id: ${Date.now() + Math.random() + 1},
-      label: "${varCategory === 'baseline' ? 'Setting' : 'Outcome Measure'}",
-      type: "text",
-      value: {
-        intervention: "Hospital",
-        comparison: "Hospital",
-        interventionTotal: "100",
-        comparisonTotal: "100"
-      },
-      isSinglePlaceholder: false,
-      armType: "double"${isNetwork ? `,\n      interventionName: "${varCategory === 'baseline' ? 'baseline' : (picoInterventionName || 'intervention')}"` : ''}
-    }
-  ]
-};`;
-            } else {
-              examples = `// Single-Arm Text Data Format:
-const ${varTypeKey} = {
-  "${exampleStudyName}": [
-    {
-      id: ${Date.now() + Math.random()},
-      label: "${varCategory === 'baseline' ? 'Study Design' : 'Primary Outcome'}",
-      type: "text",
-      value: "Randomized controlled trial",
-      isSinglePlaceholder: true,
-      armType: "single"
-    },
-    {
-      id: ${Date.now() + Math.random() + 1},
-      label: "${varCategory === 'baseline' ? 'Setting' : 'Outcome Measure'}",
-      type: "text",
-      value: "Hospital",
-      isSinglePlaceholder: true,
-      armType: "single"
-    }
-  ]
-};`;
-            }
           }
 
           return examples;
@@ -6181,6 +6117,18 @@ ${baselineExamples}
 
 ${outcomesExamples}
 
+**RECOMMENDED VARIABLE LABELS:**
+For consistency, please use these recommended label names when applicable:
+  - "Population" (description of study population)
+  - "Intervention #1" (description of primary intervention)
+  - "Intervention #2/Control group" (description of comparison/control)
+  - "All outcomes" (all outcomes measured)
+  - "Primary outcomes" (primary outcome measures)
+  - "Secondary outcomes" (secondary outcome measures)
+  - "Outcome assessment dates" (when outcomes were measured)
+  - "Type of Study/Study design" (study design type)
+  - "Country" (country where study was conducted)
+
 **EXISTING VARIABLE LABELS IN THIS PROJECT:**
 ${existingLabels.length > 0 ? `
 The following variable labels have already been used across all studies in this project.
@@ -6194,6 +6142,7 @@ When extracting data, if you find a variable that matches one of these labels (e
 use the EXACT same label name from the list above. Only create a new label name if the variable is truly different.
 ` : `
 No existing variable labels found yet. You can create new labels as needed.
+Use the recommended labels listed above when they match the data you're extracting.
 `}
 
 **YOUR TASK:**
