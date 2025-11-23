@@ -9805,9 +9805,13 @@ const handlePicoDownload = () => {
 const formatVariableValue = (variable) => {
   if (!variable) return getMissingValue();
 
-  if (variable.isSinglePlaceholder || variable.type === "text") {
+  // Text variables always have string value
+  if (variable.type === "text") {
     return variable.value || getMissingValue();
-  } else if (variable.type === "dichotomous") {
+  }
+
+  // Dichotomous variables can be single or double arm
+  if (variable.type === "dichotomous") {
     if (groupType === "intervention_comparison" && variable.armType === "double") {
       return `${variable.value.intervention || getMissingValue()}/${variable.value.interventionTotal || getMissingValue()} / ${variable.value.comparison || getMissingValue()}/${variable.value.comparisonTotal || getMissingValue()}`;
     } else {
@@ -9903,7 +9907,7 @@ const getTextValue = (studyId, label, variablesToUse) => {
                 // Study-level variables (baseline/recommended) - show without intervention tag
                 if (!variable.interventionName) {
                   let valueStr = "";
-                  if (variable.isSinglePlaceholder) {
+                  if (variable.type === "text") {
                     valueStr = variable.value || getMissingValue();
                   } else if (variable.type === "dichotomous") {
                     valueStr = `${variable.value.events || getMissingValue()}/${variable.value.total || getMissingValue()}`;
@@ -10401,10 +10405,15 @@ const getTextValue = (studyId, label, variablesToUse) => {
                 if (intName === 'baseline') {
                   Object.keys(baselineVars).forEach((label) => {
                     const variable = baselineVars[label];
-                    if (variable.isSinglePlaceholder) {
+                    if (variable.type === "text") {
                       varData[label] = variable.value || getMissingValue();
-                    } else if (variable.type === "text") {
-                      varData[label] = variable.value.text || variable.value || getMissingValue();
+                    } else if (variable.type === "dichotomous") {
+                      varData[`${label}_Events`] = variable.value?.events || getMissingValue();
+                      varData[`${label}_Total`] = variable.value?.total || getMissingValue();
+                    } else if (variable.type === "continuous") {
+                      varData[`${label}_Mean`] = variable.value?.mean || getMissingValue();
+                      varData[`${label}_SD`] = variable.value?.sd || getMissingValue();
+                      varData[`${label}_Total`] = variable.value?.total || getMissingValue();
                     } else if (variable.type === "population_size") {
                       varData[`${label}_Population`] = variable.value.population || getMissingValue();
                     }
@@ -10447,10 +10456,15 @@ const getTextValue = (studyId, label, variablesToUse) => {
 
                 Object.keys(baselineVars).forEach((label) => {
                   const variable = baselineVars[label];
-                  if (variable.isSinglePlaceholder) {
+                  if (variable.type === "text") {
                     varData[label] = variable.value || getMissingValue();
-                  } else if (variable.type === "text") {
-                    varData[label] = variable.value.text || variable.value || getMissingValue();
+                  } else if (variable.type === "dichotomous") {
+                    varData[`${label}_Events`] = variable.value?.events || getMissingValue();
+                    varData[`${label}_Total`] = variable.value?.total || getMissingValue();
+                  } else if (variable.type === "continuous") {
+                    varData[`${label}_Mean`] = variable.value?.mean || getMissingValue();
+                    varData[`${label}_SD`] = variable.value?.sd || getMissingValue();
+                    varData[`${label}_Total`] = variable.value?.total || getMissingValue();
                   } else if (variable.type === "population_size") {
                     varData[`${label}_Population`] = variable.value.population || getMissingValue();
                   }
@@ -10476,9 +10490,24 @@ const getTextValue = (studyId, label, variablesToUse) => {
 
                 const subs = variableSubgroups[label];
 
-                // Handle single placeholder
-                if (variable.isSinglePlaceholder) {
+                // Handle single placeholder text variables
+                if (variable.isSinglePlaceholder && variable.type === "text") {
                   varData[label] = variable.value || getMissingValue();
+                  return;
+                }
+
+                // Handle single placeholder dichotomous variables
+                if (variable.isSinglePlaceholder && variable.type === "dichotomous") {
+                  varData[`${label}_Events`] = variable.value?.events || getMissingValue();
+                  varData[`${label}_Total`] = variable.value?.total || getMissingValue();
+                  return;
+                }
+
+                // Handle single placeholder continuous variables
+                if (variable.isSinglePlaceholder && variable.type === "continuous") {
+                  varData[`${label}_Mean`] = variable.value?.mean || getMissingValue();
+                  varData[`${label}_SD`] = variable.value?.sd || getMissingValue();
+                  varData[`${label}_Total`] = variable.value?.total || getMissingValue();
                   return;
                 }
 
