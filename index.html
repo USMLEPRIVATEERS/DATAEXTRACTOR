@@ -6176,6 +6176,31 @@ const ${varTypeKey} = {
 **STUDY NAME:**
 Use this exact study name as the key in your JavaScript objects: "${currentStudyName}"
 
+**🔴 CRITICAL - INTERVENTION/GROUP NAMES:**
+${isNetwork ? `This is a NETWORK META-ANALYSIS study. The following intervention names have already been added to this project:
+${usedInterventions.length > 0 ? usedInterventions.map(name => `  • "${name}"`).join('\n') : '  • (No interventions added yet - this is the first one)'}
+
+**VERY IMPORTANT:**
+- For BASELINE variables: Use interventionName: "baseline"
+- For OUTCOME variables: You MUST use the EXACT intervention name from the list above for each group's data
+- The intervention names are CRITICAL for organizing the data correctly - DO NOT make up new names, use only the names listed above
+- If extracting outcomes for a new intervention not in the list, use the exact intervention name as it appears in the article` :
+groupType === 'intervention_comparison' ? `This is a DOUBLE-ARM study comparing two groups:
+  • Intervention group: "${groupNames.interventionName}"
+  • Comparison group: "${groupNames.comparisonName}"
+
+**VERY IMPORTANT:**
+- When extracting data that is SEPARATED by groups (armType: "double"), you MUST use these exact field names in the value object:
+  - "intervention": for data from the ${groupNames.interventionName} group
+  - "comparison": for data from the ${groupNames.comparisonName} group
+- These names are CRITICAL for organizing the data in the correct groups - the system uses them to know which data belongs to which arm` :
+`This is a SINGLE-ARM study with one intervention group:
+  • Intervention: "${groupNames.interventionName}"
+
+**VERY IMPORTANT:**
+- This study has only ONE group
+- Most variables will use armType: "single" with simple values (not separated by intervention/comparison)`}
+
 **IMPORTANT FORMATTING RULES:**
 1. Return VALID JavaScript code in the exact format shown below
 2. You MUST return TWO separate const variables:
