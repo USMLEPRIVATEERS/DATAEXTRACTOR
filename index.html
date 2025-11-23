@@ -5225,7 +5225,19 @@
           let variableValue = {};
 
           if (variable.isSinglePlaceholder) {
-            variableValue.singleValue = variable.value || "";
+            // For single placeholder variables, still need to check the type
+            if (variable.type === "text") {
+              variableValue.singleValue = variable.value || "";
+            } else if (variable.type === "dichotomous") {
+              variableValue.events = variable.value?.events || "";
+              variableValue.total = variable.value?.total || "";
+            } else if (variable.type === "continuous") {
+              variableValue.mean = variable.value?.mean || "";
+              variableValue.sd = variable.value?.sd || "";
+              variableValue.total = variable.value?.total || "";
+            } else if (variable.type === "population_size") {
+              variableValue.population = variable.value?.population || "";
+            }
           } else if (groupType === "intervention_comparison") {
             if (variable.armType === "double") {
               if (variable.type === "dichotomous") {
@@ -6440,8 +6452,8 @@ Extract ALL data from the article(s) I provide and return BOTH baselineVariables
             });
           }
 
-          // Validate type - accept any of the three valid types (dichotomous, continuous, text)
-          const validTypes = ['dichotomous', 'continuous', 'text'];
+          // Validate type - accept any of the four valid types (dichotomous, continuous, text, population_size)
+          const validTypes = ['dichotomous', 'continuous', 'text', 'population_size'];
           if (!validTypes.includes(variable.type)) {
             errors.push({
               line: varNum,
@@ -6510,6 +6522,26 @@ Extract ALL data from the article(s) I provide and return BOTH baselineVariables
                 errors.push({
                   line: varNum,
                   message: `Variable "${variable.label}" in "${studyName}" (${varCategory}) must have value object with mean, sd, total`,
+                  type: 'invalid_value',
+                  content: JSON.stringify(variable.value)
+                });
+              }
+            }
+          } else if (variable.type === 'population_size') {
+            if (variable.armType === 'double') {
+              if (!variable.value || typeof variable.value !== 'object') {
+                errors.push({
+                  line: varNum,
+                  message: `Variable "${variable.label}" in "${studyName}" (${varCategory}) must have value object with interventionPop, comparisonPop`,
+                  type: 'invalid_value',
+                  content: JSON.stringify(variable.value)
+                });
+              }
+            } else {
+              if (!variable.value || typeof variable.value !== 'object') {
+                errors.push({
+                  line: varNum,
+                  message: `Variable "${variable.label}" in "${studyName}" (${varCategory}) must have value object with population`,
                   type: 'invalid_value',
                   content: JSON.stringify(variable.value)
                 });
@@ -9118,6 +9150,15 @@ const ${selectedOption === 'baseline' ? 'baselineVariables' : 'outcomesVariables
                                       {mean !== "" ? mean : <span className="text-gray-500">Missing</span>}
                                       {sd && ` ± ${sd}`}
                                       {total && ` (n=${total})`}
+                                    </>
+                                  );
+                                }
+                                // For population_size single-arm, value is {population}
+                                if (variable.type === 'population_size') {
+                                  const population = variable.value?.population || "";
+                                  return (
+                                    <>
+                                      {population !== "" ? `N=${population}` : <span className="text-gray-500">Missing</span>}
                                     </>
                                   );
                                 }
