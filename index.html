@@ -6658,10 +6658,22 @@ Extract ALL data from the article(s) I provide and return BOTH baselineVariables
               // Process baseline variables
               const baselineVars = result.parsedData.baseline[studyName] || [];
               if (baselineVars.length > 0) {
+                // Remove duplicates from AI data by label (keep last occurrence)
+                const uniqueBaselineVars = [];
+                const seenLabels = new Set();
+                // Process in reverse to keep last occurrence
+                for (let i = baselineVars.length - 1; i >= 0; i--) {
+                  const variable = baselineVars[i];
+                  if (!seenLabels.has(variable.label)) {
+                    uniqueBaselineVars.unshift(variable);
+                    seenLabels.add(variable.label);
+                  }
+                }
+
                 // Get existing baseline variables for this study or create empty array
                 const existingBaselineVars = newBaselineVariables[studyName] ? [...newBaselineVariables[studyName]] : [];
 
-                baselineVars.forEach((variable) => {
+                uniqueBaselineVars.forEach((variable) => {
                   // Check if variable with same label already exists
                   const existingIndex = existingBaselineVars.findIndex((v) => v.label === variable.label);
 
@@ -6682,10 +6694,22 @@ Extract ALL data from the article(s) I provide and return BOTH baselineVariables
               // Process outcomes variables
               const outcomesVars = result.parsedData.outcomes[studyName] || [];
               if (outcomesVars.length > 0) {
+                // Remove duplicates from AI data by label (keep last occurrence)
+                const uniqueOutcomesVars = [];
+                const seenLabels = new Set();
+                // Process in reverse to keep last occurrence
+                for (let i = outcomesVars.length - 1; i >= 0; i--) {
+                  const variable = outcomesVars[i];
+                  if (!seenLabels.has(variable.label)) {
+                    uniqueOutcomesVars.unshift(variable);
+                    seenLabels.add(variable.label);
+                  }
+                }
+
                 // Get existing outcomes variables for this study or create empty array
                 const existingOutcomesVars = newOutcomesVariables[studyName] ? [...newOutcomesVariables[studyName]] : [];
 
-                outcomesVars.forEach((variable) => {
+                uniqueOutcomesVars.forEach((variable) => {
                   // Check if variable with same label already exists
                   const existingIndex = existingOutcomesVars.findIndex((v) => v.label === variable.label);
 
