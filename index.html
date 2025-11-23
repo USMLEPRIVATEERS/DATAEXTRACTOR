@@ -6690,11 +6690,15 @@ Extract ALL data from the article(s) I provide and return BOTH baselineVariables
                 for (let i = baselineVars.length - 1; i >= 0; i--) {
                   const variable = baselineVars[i];
                   if (!seenLabels.has(variable.label)) {
+                    // CRITICAL FIX: Regenerate unique ID to prevent React key collisions
+                    // AI-generated IDs often collide when created in the same millisecond
+                    variable.id = Date.now() + Math.random() * 1000000;
                     uniqueBaselineVars.unshift(variable);
                     seenLabels.add(variable.label);
                   }
                 }
                 console.log(`[DEBUG] After dedup, unique baseline vars:`, uniqueBaselineVars.length);
+                console.log(`[DEBUG] Regenerated IDs for baseline vars:`, uniqueBaselineVars.map(v => v.id));
 
                 // Get existing baseline variables for this study or create empty array
                 const existingBaselineVars = newBaselineVariables[studyName] ? [...newBaselineVariables[studyName]] : [];
@@ -6730,6 +6734,9 @@ Extract ALL data from the article(s) I provide and return BOTH baselineVariables
                 for (let i = outcomesVars.length - 1; i >= 0; i--) {
                   const variable = outcomesVars[i];
                   if (!seenLabels.has(variable.label)) {
+                    // CRITICAL FIX: Regenerate unique ID to prevent React key collisions
+                    // AI-generated IDs often collide when created in the same millisecond
+                    variable.id = Date.now() + Math.random() * 1000000;
                     uniqueOutcomesVars.unshift(variable);
                     seenLabels.add(variable.label);
                   }
