@@ -6498,6 +6498,24 @@ Extract ALL data from the article(s) I provide and return BOTH baselineVariables
                   type: 'invalid_value',
                   content: JSON.stringify(variable.value)
                 });
+              } else {
+                // Additional validation: intervention and comparison must be strings, NOT objects
+                if (typeof variable.value.intervention === 'object' && variable.value.intervention !== null) {
+                  errors.push({
+                    line: varNum,
+                    message: `Variable "${variable.label}" - INCORRECT FORMAT: "intervention" should be a STRING (number of events), NOT an object. For dichotomous double-arm variables, use: intervention: "${variable.value.intervention?.events || 'X'}", interventionTotal: "${variable.value.intervention?.total || 'Y'}", comparison: "...", comparisonTotal: "..."`,
+                    type: 'invalid_value_format',
+                    content: `Current (WRONG): intervention: { events: "${variable.value.intervention?.events || ''}", total: "${variable.value.intervention?.total || ''}" } | Expected (CORRECT): intervention: "${variable.value.intervention?.events || ''}", interventionTotal: "${variable.value.intervention?.total || ''}"`
+                  });
+                }
+                if (typeof variable.value.comparison === 'object' && variable.value.comparison !== null) {
+                  errors.push({
+                    line: varNum,
+                    message: `Variable "${variable.label}" - INCORRECT FORMAT: "comparison" should be a STRING (number of events), NOT an object. For dichotomous double-arm variables, use: comparison: "${variable.value.comparison?.events || 'X'}", comparisonTotal: "${variable.value.comparison?.total || 'Y'}"`,
+                    type: 'invalid_value_format',
+                    content: `Current (WRONG): comparison: { events: "${variable.value.comparison?.events || ''}", total: "${variable.value.comparison?.total || ''}" } | Expected (CORRECT): comparison: "${variable.value.comparison?.events || ''}", comparisonTotal: "${variable.value.comparison?.total || ''}"`
+                  });
+                }
               }
             } else {
               if (!variable.value || typeof variable.value !== 'object') {
