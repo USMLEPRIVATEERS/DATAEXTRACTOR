@@ -6117,7 +6117,7 @@ const ${varTypeKey} = {
           // Get the currently selected study name
           const currentStudyName = inputValues.selectedStudyId || studyIds[0] || '';
 
-          let prompt = `I need you to extract ${armTypeLabel} ${varTypeLabel} data from research articles and format it exactly as JavaScript code.
+          let prompt = `I need you to extract ${armTypeLabel} ${varTypeLabel} data from research articles and format it exactly as JavaScript code as an artifact.
 
 **STUDY NAME:**
 Use this exact study name as the key in your JavaScript objects: "${currentStudyName}"
@@ -6143,18 +6143,6 @@ ${baselineExamples}
 **OUTCOMES VARIABLES FORMAT:**
 
 ${outcomesExamples}
-
-**RECOMMENDED VARIABLE LABELS:**
-For consistency, please use these recommended label names when applicable:
-  - "Population" (description of study population)
-  - "Intervention #1" (description of primary intervention)
-  - "Intervention #2/Control group" (description of comparison/control)
-  - "All outcomes" (all outcomes measured)
-  - "Primary outcomes" (primary outcome measures)
-  - "Secondary outcomes" (secondary outcome measures)
-  - "Outcome assessment dates" (when outcomes were measured)
-  - "Type of Study/Study design" (study design type)
-  - "Country" (country where study was conducted)
 
 **EXISTING VARIABLE LABELS IN THIS PROJECT:**
 ${existingLabels.length > 0 ? `
@@ -6188,7 +6176,7 @@ Extract ALL data from the article(s) I provide and return BOTH baselineVariables
 - For DICHOTOMOUS variables: Data MUST be in "events" and "total" format
 - If you find data in OTHER FORMATS (median/IQR, median/range, mean/SE, mean/CI, percentages without raw numbers, etc.):
   * DO NOT try to convert them yourself
-  * LIST these variables SEPARATELY at the end with a clear note: "// DATA IN NON-STANDARD FORMAT - REQUIRES MANUAL CONVERSION:"
+  * LIST these variables SEPARATELY at a new artifact with a clear note: "// DATA IN NON-STANDARD FORMAT - REQUIRES MANUAL CONVERSION:"
   * Provide ALL the information available (e.g., "median: X, IQR: Y-Z" or "mean: X, 95% CI: Y-Z")
   * List them for BOTH baseline and outcomes sections separately
   * The user will manually convert these using a calculator later
@@ -6198,9 +6186,8 @@ Extract ALL data from the article(s) I provide and return BOTH baselineVariables
 - Return BOTH const declarations (baselineVariables and outcomesVariables)
 - Use the exact same structure as the examples above
 - Make sure all syntax is correct (commas, quotes, braces)
-- For MULTIPLE studies, add more entries to each object with different study names as keys
 - IMPORTANT: Try to use existing label names from the list above when applicable to maintain consistency across studies
-- If there are variables with non-standard formats, add them as comments at the end of your code with the note "// DATA IN NON-STANDARD FORMAT - REQUIRES MANUAL CONVERSION:"`;
+- If there are variables with non-standard formats, add them as comments at the new artifact of your code with the note "// DATA IN NON-STANDARD FORMAT - REQUIRES MANUAL CONVERSION:"`;
 
           return prompt;
         };
@@ -13055,3 +13042,4 @@ const handleDownloadFolder = async () => {
     </script>
   </body>
 </html>
+
