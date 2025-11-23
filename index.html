@@ -4655,6 +4655,15 @@
           studyIds.forEach((studyId) => {
             const vars = variables[studyId] || [];
             console.log(`[DEBUG useEffect] Study: ${studyId}, vars count: ${vars.length}`);
+            console.log(`[DEBUG useEffect] Var IDs for ${studyId}:`, vars.map(v => v.id));
+            console.log(`[DEBUG useEffect] Var labels for ${studyId}:`, vars.map(v => v.label));
+            // Check for duplicate IDs
+            const ids = vars.map(v => v.id);
+            const uniqueIds = new Set(ids);
+            if (ids.length !== uniqueIds.size) {
+              console.error(`[ERROR] DUPLICATE IDs FOUND for ${studyId}! ${ids.length} total, ${uniqueIds.size} unique`);
+              console.error('[ERROR] Duplicate IDs:', ids.filter((id, index) => ids.indexOf(id) !== index));
+            }
             newOrder[studyId] = vars.map((v) => v.id);
           });
           console.log('[DEBUG useEffect] New order:', newOrder);
@@ -5345,10 +5354,15 @@
           const selectedStudyId = inputValues.selectedStudyId || studyIds[0];
           const studyVars = variables[selectedStudyId] || [];
           const order = variablesOrder[selectedStudyId] || [];
+          console.log('[DEBUG getDisplayedVariables] selectedStudyId:', selectedStudyId);
+          console.log('[DEBUG getDisplayedVariables] studyVars count:', studyVars.length);
+          console.log('[DEBUG getDisplayedVariables] order count:', order.length);
           // Sort studyVars based on the current order
           const orderedVars = order
             .map((id) => studyVars.find((v) => v.id === id))
             .filter(Boolean);
+          console.log('[DEBUG getDisplayedVariables] orderedVars count:', orderedVars.length);
+          console.log('[DEBUG getDisplayedVariables] orderedVars labels:', orderedVars.map(v => v.label));
           return orderedVars;
         };
 
@@ -6754,8 +6768,11 @@ Extract ALL data from the article(s) I provide and return BOTH baselineVariables
             }
 
             // Update BOTH baseline and outcomes variables states
+            console.log('[DEBUG] BEFORE setState - baselineVariables:', JSON.stringify(Object.keys(baselineVariables).map(k => `${k}: ${baselineVariables[k].length} vars`)));
+            console.log('[DEBUG] BEFORE setState - newBaselineVariables:', JSON.stringify(Object.keys(newBaselineVariables).map(k => `${k}: ${newBaselineVariables[k].length} vars`)));
             setBaselineVariables(newBaselineVariables);
             setOutcomesVariables(newOutcomesVariables);
+            console.log('[DEBUG] AFTER setState called (state will update asynchronously)');
 
             // Success message
             let message = `Successfully added ${totalVariablesAdded} variable(s)`;
