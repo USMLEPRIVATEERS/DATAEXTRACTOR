@@ -5737,7 +5737,7 @@
             examples = `// Double-Arm Data Format Examples (showing ALL variable types):
 const ${varTypeKey} = {
   "${exampleStudyName}": [
-    // DICHOTOMOUS variable example:
+    // DICHOTOMOUS variable example (arm-specific):
     {
       id: ${Date.now() + Math.random()},
       label: "${varCategory === 'baseline' ? 'Age > 65' : 'Mortality'}",
@@ -5751,7 +5751,7 @@ const ${varTypeKey} = {
       isSinglePlaceholder: false,
       armType: "double"${isNetwork ? `,\n      interventionName: "${varCategory === 'baseline' ? 'baseline' : (picoInterventionName || 'intervention')}"` : ''}
     },
-    // CONTINUOUS variable example:
+    // CONTINUOUS variable example (arm-specific):
     {
       id: ${Date.now() + Math.random() + 1},
       label: "${varCategory === 'baseline' ? 'Age (years)' : 'Pain Score'}",
@@ -5765,39 +5765,40 @@ const ${varTypeKey} = {
       isSinglePlaceholder: false,
       armType: "double"${isNetwork ? `,\n      interventionName: "${varCategory === 'baseline' ? 'baseline' : (picoInterventionName || 'intervention')}"` : ''}
     },
-    // TEXT variable example:
+    // STUDY-LEVEL TEXT variable example (applies to whole study, not arm-specific):
+    // NOTE: Variables like Population, Country, Study Design, etc. use isSinglePlaceholder: true
+    // even in double-arm studies because they describe the study as a whole.
     {
       id: ${Date.now() + Math.random() + 2},
       label: "${varCategory === 'baseline' ? 'Population' : 'Primary outcomes'}",
       type: "text",
-      value: {
-        intervention: "${varCategory === 'baseline' ? 'Adults with hypertension' : 'Change in systolic blood pressure'}",
-        comparison: "${varCategory === 'baseline' ? 'Adults with hypertension' : 'Change in systolic blood pressure'}",
-        interventionTotal: "100",
-        comparisonTotal: "100"
-      },
-      isSinglePlaceholder: false,
-      armType: "double"${isNetwork ? `,\n      interventionName: "${varCategory === 'baseline' ? 'baseline' : (picoInterventionName || 'intervention')}"` : ''}
+      value: "${varCategory === 'baseline' ? 'Adults with hypertension aged 40-75' : 'Change in systolic blood pressure at 6 months'}",
+      isSinglePlaceholder: true,
+      armType: "single"${isNetwork ? `,\n      interventionName: "${varCategory === 'baseline' ? 'baseline' : (picoInterventionName || 'intervention')}"` : ''}
     },
-    // Additional examples using recommended labels:
+    // Another STUDY-LEVEL example:
     {
       id: ${Date.now() + Math.random() + 3},
-      label: "${varCategory === 'baseline' ? 'Country' : 'Recovery'}",
-      type: "${varCategory === 'baseline' ? 'text' : 'dichotomous'}",
-      value: ${varCategory === 'baseline' ? `{
-        intervention: "USA",
-        comparison: "USA",
-        interventionTotal: "100",
-        comparisonTotal: "100"
-      }` : `{
+      label: "${varCategory === 'baseline' ? 'Country' : 'All outcomes'}",
+      type: "text",
+      value: "${varCategory === 'baseline' ? 'USA' : 'Blood pressure reduction, mortality, adverse events'}",
+      isSinglePlaceholder: true,
+      armType: "single"${isNetwork ? `,\n      interventionName: "${varCategory === 'baseline' ? 'baseline' : (picoInterventionName || 'intervention')}"` : ''}
+    }${varCategory === 'outcomes' ? `,
+    // ARM-SPECIFIC outcome example (different results for intervention vs comparison):
+    {
+      id: ${Date.now() + Math.random() + 4},
+      label: "Recovery",
+      type: "dichotomous",
+      value: {
         intervention: "75",
         comparison: "60",
         interventionTotal: "100",
         comparisonTotal: "100"
-      }`},
+      },
       isSinglePlaceholder: false,
-      armType: "double"${isNetwork ? `,\n      interventionName: "${varCategory === 'baseline' ? 'baseline' : (picoInterventionName || 'intervention')}"` : ''}
-    }
+      armType: "double"${isNetwork ? `,\n      interventionName: "${picoInterventionName || 'intervention'}"` : ''}
+    }` : ''}
   ]
 };`;
           } else {
@@ -5995,33 +5996,33 @@ const ${varTypeKey} = {
           } else if (importVariableType === 'text') {
             if (isDoubleArm) {
               examples = `// Double-Arm Text Data Format:
+// NOTE: Text variables for study-level info (Population, Country, Study Design, etc.)
+// should use isSinglePlaceholder: true even in double-arm studies
 const ${varTypeKey} = {
   "${exampleStudyName}": [
     {
       id: ${Date.now() + Math.random()},
-      label: "Study Design",
+      label: "${selectedOption === 'baseline' ? 'Population' : 'Primary outcomes'}",
       type: "text",
-      value: {
-        intervention: "Randomized controlled trial",
-        comparison: "Randomized controlled trial",
-        interventionTotal: "100",
-        comparisonTotal: "100"
-      },
-      isSinglePlaceholder: false,
-      armType: "double"${isNetwork ? `,\n      interventionName: "${selectedOption === 'baseline' ? 'baseline' : (picoInterventionName || 'intervention')}"` : ''}
+      value: "${selectedOption === 'baseline' ? 'Adults aged 18-65 with type 2 diabetes' : 'HbA1c reduction at 6 months'}",
+      isSinglePlaceholder: true,
+      armType: "single"${isNetwork ? `,\n      interventionName: "${selectedOption === 'baseline' ? 'baseline' : (picoInterventionName || 'intervention')}"` : ''}
     },
     {
       id: ${Date.now() + Math.random() + 1},
-      label: "Setting",
+      label: "${selectedOption === 'baseline' ? 'Type of Study/Study design' : 'All outcomes'}",
       type: "text",
-      value: {
-        intervention: "Hospital",
-        comparison: "Hospital",
-        interventionTotal: "100",
-        comparisonTotal: "100"
-      },
-      isSinglePlaceholder: false,
-      armType: "double"${isNetwork ? `,\n      interventionName: "${selectedOption === 'baseline' ? 'baseline' : (picoInterventionName || 'intervention')}"` : ''}
+      value: "${selectedOption === 'baseline' ? 'Randomized controlled trial, double-blind' : 'HbA1c, weight loss, adverse events'}",
+      isSinglePlaceholder: true,
+      armType: "single"${isNetwork ? `,\n      interventionName: "${selectedOption === 'baseline' ? 'baseline' : (picoInterventionName || 'intervention')}"` : ''}
+    },
+    {
+      id: ${Date.now() + Math.random() + 2},
+      label: "${selectedOption === 'baseline' ? 'Country' : 'Secondary outcomes'}",
+      type: "text",
+      value: "${selectedOption === 'baseline' ? 'USA' : 'Quality of life scores, medication adherence'}",
+      isSinglePlaceholder: true,
+      armType: "single"${isNetwork ? `,\n      interventionName: "${selectedOption === 'baseline' ? 'baseline' : (picoInterventionName || 'intervention')}"` : ''}
     }
   ]
 };`;
@@ -6143,6 +6144,42 @@ ${baselineExamples}
 **OUTCOMES VARIABLES FORMAT:**
 
 ${outcomesExamples}
+
+**RECOMMENDED VARIABLE LABELS:**
+For consistency, please use these recommended label names when applicable.
+
+**IMPORTANT - STUDY-LEVEL VARIABLES:**
+The following variables describe characteristics of the ENTIRE STUDY (not arm-specific).
+Even in double-arm or network studies, these should be extracted ONLY ONCE with:
+  • isSinglePlaceholder: true
+  • armType: "single"
+  • value: "simple text string" (NOT an object with intervention/comparison)
+
+Study-level variables:
+  - "Population" (description of study population - applies to entire study)
+  - "Country" (country where study was conducted - same for all arms)
+  - "Type of Study/Study design" (study design - applies to entire study)
+  - "Setting (Ambulatory, Inpatient...)" (study setting - same for all arms)
+  - "Institution and department" (where study was conducted)
+  - "Timing (Start to End Date)" (study duration - applies to entire study)
+  - "Intervention #1" (description of primary intervention)
+  - "Intervention #2/Control group" (description of comparison/control)
+  - "All outcomes" (all outcomes measured in the study)
+  - "Primary outcomes" (primary outcome measures)
+  - "Secondary outcomes" (secondary outcome measures)
+  - "Outcome assessment dates" (when outcomes were measured)
+
+**ARM-SPECIFIC VARIABLES:**
+Variables like baseline characteristics (Age, Gender, BMI, etc.) and outcome results
+can have DIFFERENT values for intervention vs comparison groups. These should use:
+  • isSinglePlaceholder: false
+  • armType: "double" (for double-arm studies)
+  • value: object with intervention/comparison fields
+
+**SPECIAL NOTE ON POPULATION SIZE:**
+"Population Size" is ARM-SPECIFIC (different from study-level text variables above).
+In double-arm studies, it should have separate values for intervention and comparison groups
+using fields like interventionPop and comparisonPop, not isSinglePlaceholder.
 
 **EXISTING VARIABLE LABELS IN THIS PROJECT:**
 ${existingLabels.length > 0 ? `
