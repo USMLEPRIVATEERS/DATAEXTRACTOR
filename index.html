@@ -6421,13 +6421,19 @@ Extract ALL data from the article(s) I provide and return BOTH baselineVariables
             });
           }
 
-          if (variable.armType !== importArmType) {
-            errors.push({
-              line: varNum,
-              message: `Variable ${varNum} "${variable.label}" in "${studyName}" (${varCategory}) has armType "${variable.armType}" but expected "${importArmType}"`,
-              type: 'wrong_armType',
-              content: variable.label
-            });
+          // Validate armType consistency with isSinglePlaceholder
+          // Study-level variables (isSinglePlaceholder: true) should ALWAYS have armType: "single"
+          // Arm-specific variables (isSinglePlaceholder: false) should have armType: "double"
+          if (variable.hasOwnProperty('isSinglePlaceholder')) {
+            const expectedArmType = variable.isSinglePlaceholder ? 'single' : 'double';
+            if (variable.armType !== expectedArmType) {
+              errors.push({
+                line: varNum,
+                message: `Variable ${varNum} "${variable.label}" in "${studyName}" (${varCategory}) has armType "${variable.armType}" but expected "${expectedArmType}" (isSinglePlaceholder: ${variable.isSinglePlaceholder})`,
+                type: 'wrong_armType',
+                content: variable.label
+              });
+            }
           }
 
           if (!variable.hasOwnProperty('value')) {
