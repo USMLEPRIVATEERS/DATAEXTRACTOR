@@ -9086,13 +9086,43 @@ const ${selectedOption === 'baseline' ? 'baselineVariables' : 'outcomesVariables
                             {(() => {
                               // SINGLE placeholder baseline variable
                               if (variable.isSinglePlaceholder) {
-                                return (
-                                  variable.value || (
-                                    <span className="text-gray-500">
-                                      Missing
-                                    </span>
-                                  )
-                                );
+                                // For text variables, value is a string
+                                if (variable.type === 'text') {
+                                  return (
+                                    variable.value || (
+                                      <span className="text-gray-500">
+                                        Missing
+                                      </span>
+                                    )
+                                  );
+                                }
+                                // For dichotomous single-arm, value is {events, total}
+                                if (variable.type === 'dichotomous') {
+                                  const events = variable.value?.events || "";
+                                  const total = variable.value?.total || "";
+                                  return (
+                                    <>
+                                      {events !== "" ? events : <span className="text-gray-500">Missing</span>}
+                                      {" / "}
+                                      {total !== "" ? total : <span className="text-gray-500">Missing</span>}
+                                    </>
+                                  );
+                                }
+                                // For continuous single-arm, value is {mean, sd, total}
+                                if (variable.type === 'continuous') {
+                                  const mean = variable.value?.mean || "";
+                                  const sd = variable.value?.sd || "";
+                                  const total = variable.value?.total || "";
+                                  return (
+                                    <>
+                                      {mean !== "" ? mean : <span className="text-gray-500">Missing</span>}
+                                      {sd && ` ± ${sd}`}
+                                      {total && ` (n=${total})`}
+                                    </>
+                                  );
+                                }
+                                // Fallback
+                                return <span className="text-gray-500">Unknown type</span>;
                               }
 
                               // INTERVENTION + COMPARISON LOGIC
