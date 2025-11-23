@@ -5735,9 +5735,12 @@
 
           if (isDoubleArm) {
             examples = `// Double-Arm Data Format Examples (showing ALL variable types):
+// IMPORTANT: Use armType based on HOW DATA IS PRESENTED:
+//   - If data is separated by group → armType: "double"
+//   - If data is merged/total → armType: "single"
 const ${varTypeKey} = {
   "${exampleStudyName}": [
-    // DICHOTOMOUS variable example (arm-specific):
+    // DICHOTOMOUS variable example (arm-specific data - separated by group):
     {
       id: ${Date.now() + Math.random()},
       label: "${varCategory === 'baseline' ? 'Age > 65' : 'Mortality'}",
@@ -5784,10 +5787,25 @@ const ${varTypeKey} = {
       value: "${varCategory === 'baseline' ? 'USA' : 'Blood pressure reduction, mortality, adverse events'}",
       isSinglePlaceholder: true,
       armType: "single"${isNetwork ? `,\n      interventionName: "${varCategory === 'baseline' ? 'baseline' : (picoInterventionName || 'intervention')}"` : ''}
-    }${varCategory === 'outcomes' ? `,
-    // ARM-SPECIFIC outcome example (different results for intervention vs comparison):
+    }${varCategory === 'baseline' ? `,
+    // MERGED DATA example (data presented as total, not separated by group):
+    // Even in double-arm studies, if the article only provides merged/total values,
+    // use armType: "single" to reflect how the data is actually presented
     {
       id: ${Date.now() + Math.random() + 4},
+      label: "Gender (% Male)",
+      type: "continuous",
+      value: {
+        mean: "58.5",
+        sd: "",
+        total: "200"
+      },
+      isSinglePlaceholder: true,
+      armType: "single"${isNetwork ? `,\n      interventionName: "baseline"` : ''}
+    }` : ''}${varCategory === 'outcomes' ? `,
+    // ARM-SPECIFIC outcome example (different results for intervention vs comparison):
+    {
+      id: ${Date.now() + Math.random() + 5},
       label: "Recovery",
       type: "dichotomous",
       value: {
@@ -6169,17 +6187,29 @@ Study-level variables:
   - "Secondary outcomes" (secondary outcome measures)
   - "Outcome assessment dates" (when outcomes were measured)
 
-**ARM-SPECIFIC VARIABLES:**
+**ARM-SPECIFIC VARIABLES (when data is separated by group):**
 Variables like baseline characteristics (Age, Gender, BMI, etc.) and outcome results
-can have DIFFERENT values for intervention vs comparison groups. These should use:
-  • isSinglePlaceholder: false
-  • armType: "double" (for double-arm studies)
-  • value: object with intervention/comparison fields
+may have DIFFERENT values for intervention vs comparison groups.
 
-**SPECIAL NOTE ON POPULATION SIZE:**
-"Population Size" is ARM-SPECIFIC (different from study-level text variables above).
-In double-arm studies, it should have separate values for intervention and comparison groups
-using fields like interventionPop and comparisonPop, not isSinglePlaceholder.
+IMPORTANT: Choose armType based on HOW THE DATA IS PRESENTED in the article:
+
+  ✓ USE armType: "double" IF:
+    - Data is separated by intervention vs comparison groups
+    - The article provides separate values for each arm
+    - Example: "Age: Intervention 45±5 vs Control 43±6"
+    → Use: isSinglePlaceholder: false, armType: "double"
+    → Value: object with intervention/comparison fields
+
+  ✓ USE armType: "single" IF:
+    - Data is presented as overall/total/merged across all groups
+    - Only one combined value is provided (not separated by arm)
+    - Example: "Age: 44±5 (overall)", or "Mean age was 44 years"
+    → Use: isSinglePlaceholder: true, armType: "single"
+    → Value: simple text string or single value object (NOT intervention/comparison)
+
+**IMPORTANT:** Base your decision on the ACTUAL DATA AVAILABLE, not on the study type.
+Even in intervention_comparison studies, if demographic data is only provided as totals,
+use armType: "single". Extract what is available in the format it's presented.
 
 **EXISTING VARIABLE LABELS IN THIS PROJECT:**
 ${existingLabels.length > 0 ? `
@@ -6421,20 +6451,10 @@ Extract ALL data from the article(s) I provide and return BOTH baselineVariables
             });
           }
 
-          // Validate armType consistency with isSinglePlaceholder
-          // Study-level variables (isSinglePlaceholder: true) should ALWAYS have armType: "single"
-          // Arm-specific variables (isSinglePlaceholder: false) should have armType: "double"
-          if (variable.hasOwnProperty('isSinglePlaceholder')) {
-            const expectedArmType = variable.isSinglePlaceholder ? 'single' : 'double';
-            if (variable.armType !== expectedArmType) {
-              errors.push({
-                line: varNum,
-                message: `Variable ${varNum} "${variable.label}" in "${studyName}" (${varCategory}) has armType "${variable.armType}" but expected "${expectedArmType}" (isSinglePlaceholder: ${variable.isSinglePlaceholder})`,
-                type: 'wrong_armType',
-                content: variable.label
-              });
-            }
-          }
+          // Note: We do NOT validate armType - the AI decides whether to use 'single' or 'double'
+          // based on the actual data available in the text/PDF. For example:
+          // - If demographic data is only provided as totals → use armType: "single"
+          // - If data is separated by intervention/comparison → use armType: "double"
 
           if (!variable.hasOwnProperty('value')) {
             errors.push({
