@@ -4649,10 +4649,15 @@
 
         // Initialize variablesOrder when variables change
         useEffect(() => {
+          console.log('[DEBUG useEffect] Updating variablesOrder...');
+          console.log('[DEBUG useEffect] studyIds:', studyIds);
           const newOrder = {};
           studyIds.forEach((studyId) => {
-            newOrder[studyId] = (variables[studyId] || []).map((v) => v.id);
+            const vars = variables[studyId] || [];
+            console.log(`[DEBUG useEffect] Study: ${studyId}, vars count: ${vars.length}`);
+            newOrder[studyId] = vars.map((v) => v.id);
           });
+          console.log('[DEBUG useEffect] New order:', newOrder);
           setVariablesOrder(newOrder);
         }, [variables, studyIds]);
 
@@ -6614,6 +6619,8 @@ Extract ALL data from the article(s) I provide and return BOTH baselineVariables
 
         // Handle "Validate & Add Data" button click
         const handleValidateCodeView = () => {
+          console.log('[DEBUG] handleValidateCodeView called');
+
           if (!codeViewText.trim()) {
             alert('Please paste the JavaScript code from Claude first.');
             return;
@@ -6621,12 +6628,15 @@ Extract ALL data from the article(s) I provide and return BOTH baselineVariables
 
           // Prevent double-clicks
           if (isValidatingCodeView) {
+            console.log('[DEBUG] Already validating, skipping...');
             return;
           }
 
+          console.log('[DEBUG] Starting validation...');
           setIsValidatingCodeView(true);
 
           const result = validateAndParseCode(codeViewText);
+          console.log('[DEBUG] Parse result:', result);
           setCodeViewValidationResult(result);
 
           if (result.errors.length > 0) {
@@ -6657,6 +6667,7 @@ Extract ALL data from the article(s) I provide and return BOTH baselineVariables
 
               // Process baseline variables
               const baselineVars = result.parsedData.baseline[studyName] || [];
+              console.log(`[DEBUG] Study: ${studyName}, AI baseline vars count:`, baselineVars.length);
               if (baselineVars.length > 0) {
                 // Remove duplicates from AI data by label (keep last occurrence)
                 const uniqueBaselineVars = [];
@@ -6669,9 +6680,11 @@ Extract ALL data from the article(s) I provide and return BOTH baselineVariables
                     seenLabels.add(variable.label);
                   }
                 }
+                console.log(`[DEBUG] After dedup, unique baseline vars:`, uniqueBaselineVars.length);
 
                 // Get existing baseline variables for this study or create empty array
                 const existingBaselineVars = newBaselineVariables[studyName] ? [...newBaselineVariables[studyName]] : [];
+                console.log(`[DEBUG] Existing baseline vars in state:`, existingBaselineVars.length);
 
                 uniqueBaselineVars.forEach((variable) => {
                   // Check if variable with same label already exists
@@ -6689,6 +6702,8 @@ Extract ALL data from the article(s) I provide and return BOTH baselineVariables
                 });
 
                 newBaselineVariables[studyName] = existingBaselineVars;
+                console.log(`[DEBUG] Final baseline vars for ${studyName}:`, existingBaselineVars.length);
+                console.log(`[DEBUG] Baseline var labels:`, existingBaselineVars.map(v => v.label));
               }
 
               // Process outcomes variables
