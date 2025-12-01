@@ -4390,6 +4390,7 @@
         const [codeViewErrors, setCodeViewErrors] = useState([]);
         const [codeViewValidationResult, setCodeViewValidationResult] = useState(null);
         const [isValidatingCodeView, setIsValidatingCodeView] = useState(false);
+        const [replaceExistingData, setReplaceExistingData] = useState(true);
 
         const variables =
           selectedOption === "baseline" ? baselineVariables : outcomesVariables;
@@ -6734,8 +6735,11 @@ Extract ALL data from the article(s) I provide and return BOTH baselineVariables
                   const existingIndex = existingBaselineVars.findIndex((v) => v.label === variable.label);
 
                   if (existingIndex !== -1) {
-                    // Update existing variable
-                    existingBaselineVars[existingIndex] = variable;
+                    // If replaceExistingData is true, update existing variable
+                    // If false, skip this variable (keep old data)
+                    if (replaceExistingData) {
+                      existingBaselineVars[existingIndex] = variable;
+                    }
                   } else {
                     // Add new variable
                     existingBaselineVars.push(variable);
@@ -6775,8 +6779,11 @@ Extract ALL data from the article(s) I provide and return BOTH baselineVariables
                   const existingIndex = existingOutcomesVars.findIndex((v) => v.label === variable.label);
 
                   if (existingIndex !== -1) {
-                    // Update existing variable
-                    existingOutcomesVars[existingIndex] = variable;
+                    // If replaceExistingData is true, update existing variable
+                    // If false, skip this variable (keep old data)
+                    if (replaceExistingData) {
+                      existingOutcomesVars[existingIndex] = variable;
+                    }
                   } else {
                     // Add new variable
                     existingOutcomesVars.push(variable);
@@ -8756,6 +8763,39 @@ Extract ALL data from the article(s) I provide and return BOTH baselineVariables
                         <p className="text-xs text-gray-400 mt-2">
                           💡 Click "Copy Prompt for Claude" to get a complete prompt with instructions. Then paste it to Claude along with your article/PDF data.
                         </p>
+                      </div>
+
+                      {/* Replace Existing Data Toggle */}
+                      <div className="mb-6 p-4 bg-purple-900/20 border border-purple-500/30 rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <label className="block font-semibold text-purple-300 mb-1">
+                              Substituir Dados Existentes
+                            </label>
+                            <p className="text-xs text-gray-400">
+                              Se ativado, substitui dados com mesmo label. Se desativado, mantém dados antigos e só adiciona novos.
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => setReplaceExistingData(!replaceExistingData)}
+                            className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-gray-800 ${
+                              replaceExistingData ? 'bg-purple-600' : 'bg-gray-600'
+                            }`}
+                          >
+                            <span
+                              className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform duration-200 ${
+                                replaceExistingData ? 'translate-x-7' : 'translate-x-1'
+                              }`}
+                            />
+                          </button>
+                        </div>
+                        <div className="mt-2 text-xs font-semibold">
+                          {replaceExistingData ? (
+                            <span className="text-purple-300">✓ Dados antigos serão substituídos</span>
+                          ) : (
+                            <span className="text-yellow-300">⚠ Dados antigos serão mantidos</span>
+                          )}
+                        </div>
                       </div>
 
                       {/* Step 2: Paste Data from AI */}
