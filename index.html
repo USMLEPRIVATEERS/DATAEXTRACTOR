@@ -3822,7 +3822,7 @@
               setBotaoCopiado(true);
               setTimeout(() => setBotaoCopiado(false), 2000);
             } catch (err) {
-              alert("Falha ao copiar os dados.");
+              alert("Failed to copy data.");
             }
 
             document.body.removeChild(tempTextArea);
@@ -8782,13 +8782,13 @@ Extract ALL data from the article(s) I provide and return BOTH baselineVariables
                           </div>
                           <div className="flex-1">
                             <div className="font-semibold text-purple-300 group-hover:text-purple-200 transition-colors">
-                              Substituir Dados Existentes
+                              Replace Existing Data
                             </div>
                             <p className="text-xs text-gray-400 mt-1">
                               {replaceExistingData ? (
-                                <span className="text-purple-300">✓ Marcado: substitui dados com mesmo label</span>
+                                <span className="text-purple-300">✓ Checked: replaces data with same label</span>
                               ) : (
-                                <span className="text-yellow-300">Desmarcado: mantém dados antigos e só adiciona novos</span>
+                                <span className="text-yellow-300">Unchecked: keeps old data and only adds new data</span>
                               )}
                             </p>
                           </div>
