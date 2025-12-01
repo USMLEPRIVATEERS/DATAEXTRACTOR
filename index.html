@@ -8765,37 +8765,34 @@ Extract ALL data from the article(s) I provide and return BOTH baselineVariables
                         </p>
                       </div>
 
-                      {/* Replace Existing Data Toggle */}
+                      {/* Replace Existing Data Option */}
                       <div className="mb-6 p-4 bg-purple-900/20 border border-purple-500/30 rounded-lg">
-                        <div className="flex items-center justify-between">
+                        <label className="flex items-start gap-3 cursor-pointer group">
+                          <div className="flex items-center h-5 mt-0.5">
+                            <input
+                              type="checkbox"
+                              checked={replaceExistingData}
+                              onChange={(e) => setReplaceExistingData(e.target.checked)}
+                              className="w-5 h-5 rounded border-2 border-purple-400 bg-gray-800 text-purple-600
+                                       focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-gray-900
+                                       cursor-pointer transition-all duration-200
+                                       checked:bg-purple-600 checked:border-purple-600
+                                       hover:border-purple-300"
+                            />
+                          </div>
                           <div className="flex-1">
-                            <label className="block font-semibold text-purple-300 mb-1">
+                            <div className="font-semibold text-purple-300 group-hover:text-purple-200 transition-colors">
                               Substituir Dados Existentes
-                            </label>
-                            <p className="text-xs text-gray-400">
-                              Se ativado, substitui dados com mesmo label. Se desativado, mantém dados antigos e só adiciona novos.
+                            </div>
+                            <p className="text-xs text-gray-400 mt-1">
+                              {replaceExistingData ? (
+                                <span className="text-purple-300">✓ Marcado: substitui dados com mesmo label</span>
+                              ) : (
+                                <span className="text-yellow-300">Desmarcado: mantém dados antigos e só adiciona novos</span>
+                              )}
                             </p>
                           </div>
-                          <button
-                            onClick={() => setReplaceExistingData(!replaceExistingData)}
-                            className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-gray-800 ${
-                              replaceExistingData ? 'bg-purple-600' : 'bg-gray-600'
-                            }`}
-                          >
-                            <span
-                              className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform duration-200 ${
-                                replaceExistingData ? 'translate-x-7' : 'translate-x-1'
-                              }`}
-                            />
-                          </button>
-                        </div>
-                        <div className="mt-2 text-xs font-semibold">
-                          {replaceExistingData ? (
-                            <span className="text-purple-300">✓ Dados antigos serão substituídos</span>
-                          ) : (
-                            <span className="text-yellow-300">⚠ Dados antigos serão mantidos</span>
-                          )}
-                        </div>
+                        </label>
                       </div>
 
                       {/* Step 2: Paste Data from AI */}
